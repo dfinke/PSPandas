@@ -127,6 +127,7 @@ Run both complete examples from the project folder with:
 & ./examples/QuickStart.ps1
 & ./examples/Grouping.ps1
 & ./examples/Joins.ps1
+& ./examples/SalesReporting.ps1
 ```
 
 ## Supported functionality
@@ -156,4 +157,4 @@ Run the test suite from the project folder:
 Invoke-Pester ./tests -Output Detailed
 ```
 
-The runnable examples are `examples/QuickStart.ps1`, `examples/Grouping.ps1`, `examples/Joins.ps1`, `examples/Columns.ps1`, and `examples/Summarize.ps1`.
+The runnable examples are `examples/QuickStart.ps1`, `examples/Grouping.ps1`, `examples/Joins.ps1`, `examples/Columns.ps1`, `examples/Summarize.ps1`, and `examples/SalesReporting.ps1`.
