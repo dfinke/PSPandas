@@ -99,13 +99,15 @@ function New-PSPandasDataFrameObject {
         [object[]]$normalizedRows.ToArray()
     }
 
-    $frame = [pscustomobject][ordered]@{
-        Columns = [string[]]$resolvedColumns.ToArray()
-        Rows    = $rowsValue
+    $columnObjects = [System.Collections.Generic.List[PSPandas.DataFrameColumn]]::new()
+    foreach ($column in $resolvedColumns) {
+        $columnValues = [System.Collections.Generic.List[object]]::new()
+        foreach ($row in $rowsValue) {
+            [void]$columnValues.Add((Get-PSPandasPropertyValue -InputObject $row -Name $column))
+        }
+        [void]$columnObjects.Add([PSPandas.DataFrameColumn]::new($column, [object[]]$columnValues.ToArray()))
     }
-    $frame.PSTypeNames.Insert(0, 'PSPandas.DataFrame')
-    $frame | Add-Member -MemberType ScriptProperty -Name Count -Value { @($this.Rows).Count } -Force
-    return $frame
+    return [PSPandas.DataFrame]::new([string[]]$resolvedColumns.ToArray(), $rowsValue, $columnObjects.ToArray())
 }
 
 function Assert-PSPandasDataFrame {

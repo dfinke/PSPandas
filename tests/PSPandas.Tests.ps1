@@ -53,6 +53,55 @@ Describe 'PSPandas construction and inspection' {
         (Get-Command Where-PSDataFrame).Definition | Should -Be 'Find-PSDataFrame'
         (Get-Command Sort-PSDataFrame).Definition | Should -Be 'Set-PSDataFrameOrder'
         (Get-Command Summarize-PSDataFrame).Definition | Should -Be 'Measure-PSDataFrame'
+        (Get-Command Summarize).CommandType | Should -Be 'Alias'
+        (Get-Command Summarize).Definition | Should -Be 'Measure-PSDataFrame'
+    }
+}
+
+Describe 'PSPandas column objects' {
+    It 'supports lookup, values, and numeric scalar operations' {
+        $column = $frame['Amount']
+        $column.GetType().Name | Should -Be 'DataFrameColumn'
+        $column.Name | Should -Be 'Amount'
+        @($column.Values) | Should -Be @(20, 15, 45)
+        $column.Count() | Should -Be 3
+        $column.Sum() | Should -Be 80
+        $column.Average() | Should -Be (80 / 3)
+        $column.Min() | Should -Be 15
+        $column.Max() | Should -Be 45
+    }
+
+    It 'ignores nulls and handles empty columns predictably' {
+        $withNulls = @(
+            [pscustomobject][ordered]@{ Units = [int32]1 }
+            [pscustomobject][ordered]@{ Units = $null }
+            [pscustomobject][ordered]@{ Units = [int32]3 }
+        ) | ConvertTo-PSDataFrame
+        $column = $withNulls['Units']
+        @($column.Values).Count | Should -Be 3
+        $column.Count() | Should -Be 2
+        $column.Sum() | Should -Be 4
+        $column.Average() | Should -Be 2
+        $column.Min() | Should -Be 1
+        $column.Max() | Should -Be 3
+
+        $empty = ConvertTo-PSDataFrame -Columns Units
+        $emptyColumn = $empty['Units']
+        @($emptyColumn.Values).Count | Should -Be 0
+        $emptyColumn.Count() | Should -Be 0
+        $emptyColumn.Sum() | Should -Be 0
+        $emptyColumn.Average() | Should -Be $null
+        $emptyColumn.Min() | Should -Be $null
+        $emptyColumn.Max() | Should -Be $null
+    }
+
+    It 'reports missing and incompatible column operations clearly' {
+        { $frame['Missing'] } | Should -Throw '*does not exist*'
+        $bad = @(
+            [pscustomobject][ordered]@{ Units = [int32]1 }
+            [pscustomobject][ordered]@{ Units = 'not numeric' }
+        ) | ConvertTo-PSDataFrame
+        { $bad['Units'].Sum() } | Should -Throw '*non-numeric*'
     }
 }
 
@@ -123,6 +172,37 @@ Describe 'PSPandas core transformations' {
             Products = { param($rows) (@($rows | ForEach-Object Product) -join '/') }
         })
         $summary.Rows[0].Products | Should -Be 'A/B/C'
+    }
+
+    It 'supports concise ungrouped and grouped summaries with multiple properties' {
+        $orders = @(
+            [pscustomobject][ordered]@{ State = 'East'; OrderId = 1001; CustomerId = 'C01'; Amount = 20; Tax = 2 }
+            [pscustomobject][ordered]@{ State = 'East'; OrderId = 1002; CustomerId = 'C02'; Amount = 15; Tax = 1 }
+            [pscustomobject][ordered]@{ State = 'West'; OrderId = 1003; CustomerId = 'C03'; Amount = 7; Tax = 1 }
+        ) | ConvertTo-PSDataFrame
+
+        $ungrouped = $orders | Summarize -Count OrderId, CustomerId -Sum Amount, Tax
+        ($ungrouped.Columns -join ',') | Should -Be 'Count_OrderId,Count_CustomerId,Sum_Amount,Sum_Tax'
+        $ungrouped.Rows[0].Count_OrderId | Should -Be 3
+        $ungrouped.Rows[0].Sum_Amount | Should -Be 42
+        $ungrouped.Rows[0].Sum_Tax | Should -Be 4
+
+        $grouped = $orders | Summarize -By State -Count OrderId, CustomerId -Sum Amount, Tax
+        ($grouped.Columns -join ',') | Should -Be 'State,Count_OrderId,Count_CustomerId,Sum_Amount,Sum_Tax'
+        $grouped.Rows[0].State | Should -Be 'East'
+        $grouped.Rows[0].Sum_Amount | Should -Be 35
+        $grouped.Rows[1].State | Should -Be 'West'
+        $grouped.Rows[1].Sum_Tax | Should -Be 1
+    }
+
+    It 'combines friendly and advanced aggregates without allowing collisions' {
+        $mixed = $frame | Summarize -Count Product -Aggregate ([ordered]@{
+            Revenue = @{ Property = 'Amount'; Function = 'Sum' }
+        })
+        ($mixed.Columns -join ',') | Should -Be 'Count_Product,Revenue'
+        { $frame | Summarize -Sum Amount -Aggregate ([ordered]@{
+            Sum_Amount = @{ Property = 'Amount'; Function = 'Sum' }
+        }) } | Should -Throw '*collides*'
     }
 
     It 'infers a numeric source property from a function-only aggregate spec' {

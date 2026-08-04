@@ -87,11 +87,46 @@ Join-PSDataFrame -Left $orders -Right $customers -On CustomerId -JoinType Left |
 # Columns: OrderId, CustomerId, Amount, Customer
 ```
 
+## Column operations
+
+Indexing a frame by column name returns a PSPandas column object. It exposes the underlying `Values` and scalar operations such as `Sum()`, `Average()`, `Min()`, `Max()`, and `Count()`:
+
+```powershell
+$orders['OrderId'].Sum()
+$orders['Amount'].Average()
+$orders['Amount'].Values
+```
+
+`Count()` counts non-null values. `Sum()` ignores nulls and returns `0` for an empty or all-null column. `Average()`, `Min()`, and `Max()` ignore nulls and return `$null` when no non-null values remain. Numeric operations require numeric .NET values; incompatible non-null values throw a clear error rather than being coerced silently. Run the complete example with `& ./examples/Columns.ps1`.
+
+## Concise summaries
+
+`Summarize` is an alias for `Measure-PSDataFrame` with convenient array-valued operation parameters. Generated output names are deterministic: `Count_OrderId`, `Count_CustomerId`, `Sum_Amount`, and `Sum_Tax` in the order Count, Sum, Average, Min, Max, followed by any advanced `-Aggregate` entries.
+
+```powershell
+$orders = @(
+    [pscustomobject]@{ State = 'East'; OrderId = 1001; CustomerId = 'C01'; Amount = 20; Tax = 2 }
+    [pscustomobject]@{ State = 'East'; OrderId = 1002; CustomerId = 'C02'; Amount = 15; Tax = 1 }
+    [pscustomobject]@{ State = 'West'; OrderId = 1003; CustomerId = 'C03'; Amount = 7; Tax = 1 }
+) | ConvertTo-PSDataFrame
+
+# One summary row across all orders.
+$orders | Summarize -Count OrderId, CustomerId -Sum Amount, Tax |
+    ConvertFrom-PSDataFrame | Format-Table
+
+# One summary row per State.
+$orders | Summarize -By State -Count OrderId, CustomerId -Sum Amount, Tax |
+    ConvertFrom-PSDataFrame | Format-Table
+```
+
+The advanced `Measure-PSDataFrame -Aggregate` form remains available for custom output names and scriptblock aggregates. A friendly generated name that collides with an advanced aggregate name throws an error instead of overwriting a column. Run the complete concise-summary example with `& ./examples/Summarize.ps1`.
+
 Run both complete examples from the project folder with:
 
 ```powershell
 & ./examples/QuickStart.ps1
-& ./examples/GroupingAndJoins.ps1
+& ./examples/Grouping.ps1
+& ./examples/Joins.ps1
 ```
 
 ## Supported functionality
@@ -104,7 +139,7 @@ Run both complete examples from the project folder with:
 - `Set-PSDataFrameOrder`: sort by one or more columns. `Sort-PSDataFrame` remains as a compatibility alias.
 - `Add-PSDataFrameColumn`: add a calculated column; the expression receives the current row through `$_` and its first argument.
 - `Group-PSDataFrame`: produce stable, first-seen groups with key, rows, count, and a group frame.
-- `Measure-PSDataFrame`: aggregate globally or by key. Aggregate specifications may be scriptblocks, property names (sum by default), or `@{ Property = 'Amount'; Function = 'Sum' }` hashtables. For non-count hashtable specifications that omit `Property`, the aggregate output name is used as the source property name. Built-ins include Count, Sum, Average, Min, and Max. `Summarize-PSDataFrame` remains as a compatibility alias.
+- `Measure-PSDataFrame`: aggregate globally or by key. Aggregate specifications may be scriptblocks, property names (sum by default), or `@{ Property = 'Amount'; Function = 'Sum' }` hashtables. For non-count hashtable specifications that omit `Property`, the aggregate output name is used as the source property name. Built-ins include Count, Sum, Average, Min, and Max. `Summarize` is a concise alias for the friendly parameter surface, and `Summarize-PSDataFrame` remains as a compatibility alias.
 - `Join-PSDataFrame`: inner, left, right, and full joins on one or more keys. Non-key collisions receive `_left` and `_right` suffixes by default.
 
 All transformations preserve input row order where ordering is meaningful. Empty frames retain an explicitly supplied schema; empty transformations return empty frames with their expected columns.
@@ -121,4 +156,4 @@ Run the test suite from the project folder:
 Invoke-Pester ./tests -Output Detailed
 ```
 
-The runnable examples are `examples/QuickStart.ps1` and `examples/GroupingAndJoins.ps1`.
+The runnable examples are `examples/QuickStart.ps1`, `examples/Grouping.ps1`, `examples/Joins.ps1`, `examples/Columns.ps1`, and `examples/Summarize.ps1`.

@@ -31,6 +31,7 @@
         'Group-PSDF',
         'Summarize-PSDF',
         'Summarize-PSDataFrame',
+        'Summarize',
         'Join-PSDF'
     )
     PrivateData       = @{
