@@ -34,6 +34,20 @@ Describe 'PSPandas construction and inspection' {
         ($frame | Get-PSDataFrameHead -Count 1).Product | Should -Be 'A'
     }
 
+    It 'uses the row table as the default display without changing frame semantics' {
+        $display = $frame | Out-String
+        $display | Should -Match 'Region'
+        $display | Should -Match 'Product'
+        $display | Should -Not -Match 'Columns'
+        $display | Should -Not -Match 'Rows'
+
+        $empty = ConvertTo-PSDataFrame -Columns Region, Product
+        $emptyDisplay = $empty | Out-String
+        $emptyDisplay | Should -Match '0 rows'
+        $empty.GetType().FullName | Should -Be 'PSPandas.DataFrame'
+        @($empty.Rows).Count | Should -Be 0
+    }
+
     It 'round-trips rows as ordinary PowerShell objects' {
         $rows = @($frame | ConvertFrom-PSDataFrame)
         $rows[1].Product | Should -Be 'B'
@@ -55,6 +69,8 @@ Describe 'PSPandas construction and inspection' {
         (Get-Command Summarize-PSDataFrame).Definition | Should -Be 'Measure-PSDataFrame'
         (Get-Command Summarize).CommandType | Should -Be 'Alias'
         (Get-Command Summarize).Definition | Should -Be 'Measure-PSDataFrame'
+        (Get-Command Describe -Module PSPandas).CommandType | Should -Be 'Alias'
+        (Get-Command Describe -Module PSPandas).Definition | Should -Be 'Get-PSDataFrameProfile'
     }
 }
 
@@ -102,6 +118,96 @@ Describe 'PSPandas column objects' {
             [pscustomobject][ordered]@{ Units = 'not numeric' }
         ) | ConvertTo-PSDataFrame
         { $bad['Units'].Sum() } | Should -Throw '*non-numeric*'
+    }
+}
+
+Describe 'PSPandas profiling' {
+    It 'profiles numeric, DateTime, text, and null values' {
+        $rows = @(
+            [pscustomobject][ordered]@{ Amount = [int32]10; OrderDate = [datetime]'2024-01-02'; Status = 'Open' }
+            [pscustomobject][ordered]@{ Amount = $null; OrderDate = [datetime]'2024-01-01'; Status = 'Closed' }
+            [pscustomobject][ordered]@{ Amount = [int32]15; OrderDate = [datetime]'2024-01-03'; Status = $null }
+        ) | ConvertTo-PSDataFrame
+        $profileFrame = $rows | Get-PSDataFrameProfile -SampleCount 2
+
+        $profileFrame.PSTypeNames | Should -Contain 'PSPandas.Profile'
+        ($profileFrame.Columns -join ',') | Should -Be 'Column,Type,RowCount,NullCount,DistinctCount,SampleValues,Minimum,Maximum,Average,Sum,Earliest,Latest'
+        $amount = @($profileFrame.Rows | Where-Object Column -eq 'Amount')[0]
+        $amount.Type | Should -Be 'Numeric'
+        $amount.RowCount | Should -Be 3
+        $amount.NullCount | Should -Be 1
+        $amount.DistinctCount | Should -Be 2
+        @($amount.SampleValues).Count | Should -Be 2
+        $amount.Minimum | Should -Be 10
+        $amount.Maximum | Should -Be 15
+        $amount.Average | Should -Be 12.5
+        $amount.Sum | Should -Be 25
+
+        $date = @($profileFrame.Rows | Where-Object Column -eq 'OrderDate')[0]
+        $date.Type | Should -Be 'DateTime'
+        $date.NullCount | Should -Be 0
+        $date.Earliest | Should -Be ([datetime]'2024-01-01')
+        $date.Latest | Should -Be ([datetime]'2024-01-03')
+
+        $status = @($profileFrame.Rows | Where-Object Column -eq 'Status')[0]
+        $status.Type | Should -Be 'String'
+        $status.NullCount | Should -Be 1
+        $status.DistinctCount | Should -Be 2
+        @($status.SampleValues).Count | Should -Be 2
+    }
+
+    It 'renders profile rows in type-aware sections with date bounds and samples' {
+        $rows = @(
+            [pscustomobject][ordered]@{ Amount = [int32]10; OrderDate = [datetime]'2024-01-02'; Status = 'Open' }
+            [pscustomobject][ordered]@{ Amount = [int32]20; OrderDate = [datetime]'2024-01-04'; Status = 'Closed' }
+        ) | ConvertTo-PSDataFrame
+
+        $profileFrame = $rows | Get-PSDataFrameProfile -SampleCount 1
+        $display = $profileFrame | Out-String
+        $display | Should -Match 'Numeric columns:'
+        $display | Should -Match 'Date/time columns:'
+        $display | Should -Match 'Other columns:'
+        $display | Should -Match 'SampleValues'
+
+        $dateStart = $display.IndexOf('Date/time columns:')
+        $otherStart = $display.IndexOf('Other columns:')
+        $dateSection = $display.Substring($dateStart, $otherStart - $dateStart)
+        $dateSection | Should -Match 'Earliest'
+        $dateSection | Should -Match 'Latest'
+        $dateSection | Should -Match '2024'
+        $dateSection | Should -Not -Match 'Minimum|Maximum|Average|Sum'
+        $display | Should -Match 'Open'
+    }
+
+    It 'handles empty, all-null, and mixed columns without throwing' {
+        $empty = ConvertTo-PSDataFrame -Columns EmptyColumn
+        $emptyProfile = $empty | Get-PSDataFrameProfile
+        $emptyRow = $emptyProfile.Rows[0]
+        $emptyRow.Type | Should -Be 'Empty'
+        $emptyRow.RowCount | Should -Be 0
+        $emptyRow.NullCount | Should -Be 0
+        $emptyRow.DistinctCount | Should -Be 0
+        $emptyRow.Sum | Should -Be $null
+
+        $allNull = @(
+            [pscustomobject][ordered]@{ Value = $null }
+            [pscustomobject][ordered]@{ Value = $null }
+        ) | ConvertTo-PSDataFrame
+        $allNullRow = ($allNull | Get-PSDataFrameProfile).Rows[0]
+        $allNullRow.Type | Should -Be 'Null'
+        $allNullRow.RowCount | Should -Be 2
+        $allNullRow.NullCount | Should -Be 2
+
+        $mixed = @(
+            [pscustomobject][ordered]@{ Value = [int32]1 }
+            [pscustomobject][ordered]@{ Value = 'two' }
+            [pscustomobject][ordered]@{ Value = [int32]3 }
+        ) | ConvertTo-PSDataFrame
+        $mixedRow = ($mixed | Get-PSDataFrameProfile).Rows[0]
+        $mixedRow.Type | Should -Be 'Mixed'
+        $mixedRow.DistinctCount | Should -Be 3
+        $mixedRow.Sum | Should -Be $null
+        @($mixedRow.SampleValues).Count | Should -Be 3
     }
 }
 

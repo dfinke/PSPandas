@@ -13,6 +13,7 @@ foreach ($file in $publicFiles) {
 Export-ModuleMember -Function @(
     'ConvertTo-PSDataFrame',
     'ConvertFrom-PSDataFrame',
+    'Get-PSDataFrameProfile',
     'Get-PSDataFrameInfo',
     'Get-PSDataFrameHead',
     'Get-PSDataFrameColumn',
@@ -34,5 +35,6 @@ Export-ModuleMember -Function @(
     'Summarize-PSDF',
     'Summarize-PSDataFrame',
     'Summarize',
+    'Describe',
     'Join-PSDF'
 )

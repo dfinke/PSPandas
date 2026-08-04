@@ -121,19 +121,50 @@ $orders | Summarize -By State -Count OrderId, CustomerId -Sum Amount, Tax |
 
 The advanced `Measure-PSDataFrame -Aggregate` form remains available for custom output names and scriptblock aggregates. A friendly generated name that collides with an advanced aggregate name throws an error instead of overwriting a column. Run the complete concise-summary example with `& ./examples/Summarize.ps1`.
 
+## Data profiling
+
+Profile a frame directly from a pipeline with the canonical command or its concise alias:
+
+```powershell
+Import-Csv .\orders.csv |
+    ConvertTo-PSDataFrame |
+    Describe -SampleCount 3 |
+    ConvertFrom-PSDataFrame |
+    Format-Table -Wrap
+```
+
+The profile schema is `Column`, `Type`, `RowCount`, `NullCount`, `DistinctCount`, `SampleValues`, `Minimum`, `Maximum`, `Average`, `Sum`, `Earliest`, and `Latest`. Nulls are omitted from samples, distinct counts, and applicable summaries. Empty columns use `Type = 'Empty'`; all-null columns use `Type = 'Null'`; heterogeneous columns use `Type = 'Mixed'` and retain samples without throwing. Numeric fields are populated only for compatible numeric values, and `Earliest`/`Latest` only for DateTime-like columns. The interactive view separates Numeric, Date/time, and Other profile rows so irrelevant blank statistic columns do not crowd the display. Run the self-contained example with `& ./examples/Profile.ps1`.
+
+## Interactive DataFrame display
+
+A DataFrame keeps its normal object and pipeline semantics, but its default PowerShell view renders the stored `Rows` as a readable table. This means a terminal pipeline can end naturally at the frame or profile:
+
+```powershell
+$orders = Import-Csv .\orders.csv | ConvertTo-PSDataFrame
+$orders
+$orders | Describe
+```
+
+The formatter uses the frame's current column shape, omits wrapper properties such as `Columns`, `Rows`, and `Count`, and displays an explicit empty-frame message. `$orders.Rows` remains available for direct row access, and `ConvertFrom-PSDataFrame` remains the explicit choice when downstream commands should receive individual rows.
+
 Run both complete examples from the project folder with:
 
 ```powershell
 & ./examples/QuickStart.ps1
 & ./examples/Grouping.ps1
 & ./examples/Joins.ps1
+& ./examples/Columns.ps1
+& ./examples/Summarize.ps1
 & ./examples/SalesReporting.ps1
+& ./examples/Profile.ps1
+& ./examples/RichProfile.ps1
 ```
 
 ## Supported functionality
 
 - `ConvertTo-PSDataFrame`: collect ordinary pipeline objects into a frame; explicit columns can define an empty or stable schema.
 - `ConvertFrom-PSDataFrame`: emit frame rows as ordinary PowerShell objects for existing commands, CSV writers, SQL clients, or later integrations.
+- `Get-PSDataFrameProfile` / `Describe`: return one profile row per column with type, row/null/distinct counts, samples, numeric summaries, and date bounds.
 - `Get-PSDataFrameInfo`, `Get-PSDataFrameColumn`, and `Get-PSDataFrameHead`: inspect schema, size, columns, and leading rows.
 - `Find-PSDataFrame`: filter rows with a `Where-Object`-style scriptblock. `Where-PSDataFrame` remains as a compatibility alias.
 - `Select-PSDataFrame`: select and reorder existing columns.
@@ -157,4 +188,4 @@ Run the test suite from the project folder:
 Invoke-Pester ./tests -Output Detailed
 ```
 
-The runnable examples are `examples/QuickStart.ps1`, `examples/Grouping.ps1`, `examples/Joins.ps1`, `examples/Columns.ps1`, `examples/Summarize.ps1`, and `examples/SalesReporting.ps1`.
+The runnable examples are `examples/QuickStart.ps1`, `examples/Grouping.ps1`, `examples/Joins.ps1`, `examples/Columns.ps1`, `examples/Summarize.ps1`, `examples/SalesReporting.ps1`, `examples/Profile.ps1`, and `examples/RichProfile.ps1`.

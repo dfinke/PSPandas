@@ -7,9 +7,11 @@
     Copyright         = '(c) PSPandas contributors. All rights reserved.'
     Description       = 'A lightweight, pipeline-friendly PowerShell data-frame library.'
     PowerShellVersion = '7.0'
+    FormatsToProcess  = @('PSPandas.format.ps1xml')
     FunctionsToExport = @(
         'ConvertTo-PSDataFrame',
         'ConvertFrom-PSDataFrame',
+        'Get-PSDataFrameProfile',
         'Get-PSDataFrameInfo',
         'Get-PSDataFrameHead',
         'Get-PSDataFrameColumn',
@@ -32,6 +34,7 @@
         'Summarize-PSDF',
         'Summarize-PSDataFrame',
         'Summarize',
+        'Describe',
         'Join-PSDF'
     )
     PrivateData       = @{
