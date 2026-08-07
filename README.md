@@ -125,6 +125,14 @@ The advanced `Measure-PSDataFrame -Aggregate` form remains available for custom 
 
 `ConvertTo-PSDataFrameWide` is the canonical wide-reshape command. Its concise `Pivot` and `Pivot-PSDataFrame` aliases provide a natural interactive surface while keeping module imports approved-verb and warning-free.
 
+The repository includes an original, deterministic retail-order dataset modeled after the analytical shape of a superstore dataset. `examples/data/RetailOrders.csv` contains 144 typed line items across 72 orders, four regions, twelve states, customer segments, product categories and sub-categories, two years of dates, sales, quantity, discounts, and positive/negative profit. `examples/data/RetailOrders.xlsx` provides the same records on an `Orders` worksheet plus a `Data Dictionary` worksheet.
+
+Run three practical geography, multi-measure, and profitability pivots with:
+
+```powershell
+& ./examples/SuperstorePivot.ps1
+```
+
 ```powershell
 $sales | Pivot -Index Region -Columns Channel -Values Revenue -Aggregate Sum
 
@@ -288,6 +296,7 @@ Run the complete examples from the project folder with:
 & ./examples/Columns.ps1
 & ./examples/Summarize.ps1
 & ./examples/Pivot.ps1
+& ./examples/SuperstorePivot.ps1
 & ./examples/SalesReporting.ps1
 & ./examples/Profile.ps1
 & ./examples/RichProfile.ps1
@@ -324,4 +333,4 @@ Run the test suite from the project folder:
 Invoke-Pester ./tests -Output Detailed
 ```
 
-The runnable examples are `examples/QuickStart.ps1`, `examples/Import.ps1`, `examples/ExcelImport.ps1`, `examples/Workbook.ps1`, `examples/Grouping.ps1`, `examples/Joins.ps1`, `examples/Columns.ps1`, `examples/Summarize.ps1`, `examples/Pivot.ps1`, `examples/SalesReporting.ps1`, `examples/Profile.ps1`, and `examples/RichProfile.ps1`.
+The runnable examples are `examples/QuickStart.ps1`, `examples/Import.ps1`, `examples/ExcelImport.ps1`, `examples/Workbook.ps1`, `examples/Grouping.ps1`, `examples/Joins.ps1`, `examples/Columns.ps1`, `examples/Summarize.ps1`, `examples/Pivot.ps1`, `examples/SuperstorePivot.ps1`, `examples/SalesReporting.ps1`, `examples/Profile.ps1`, and `examples/RichProfile.ps1`.

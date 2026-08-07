@@ -1,0 +1,145 @@
+Row ID,Order ID,Order Date,Ship Date,Ship Mode,Customer ID,Customer Name,Segment,Country,City,State,Postal Code,Region,Product ID,Category,Sub-Category,Product Name,Sales,Quantity,Discount,Profit
+1,ORD-2025-0001,2025-01-02,2025-01-02,Same Day,CUST-0008,Cameron Ito,Corporate,United States,Austin,Texas,78701,South,OFF-BIN-001,Office Supplies,Binders,Heavy-Duty Binder,91.2,4,0.05,37.7
+2,ORD-2025-0001,2025-01-02,2025-01-02,Same Day,CUST-0008,Cameron Ito,Corporate,United States,Austin,Texas,78701,South,FUR-CHA-001,Furniture,Chairs,Ergonomic Task Chair,1387.2,6,0.2,285.7
+3,ORD-2025-0002,2025-01-13,2025-01-18,Standard Class,CUST-0015,Rowan Quinn,Home Office,United States,St. Louis,Missouri,63101,Central,TEC-COP-001,Technology,Copiers,Desktop Color Copier,7434,7,0.1,1368.5
+4,ORD-2025-0002,2025-01-13,2025-01-18,Standard Class,CUST-0015,Rowan Quinn,Home Office,United States,St. Louis,Missouri,63101,Central,OFF-BIN-001,Office Supplies,Binders,Heavy-Duty Binder,33.6,2,0.3,0.1
+5,ORD-2025-0003,2025-01-24,2025-01-27,Second Class,CUST-0002,Jordan Chen,Corporate,United States,Boston,Massachusetts,02108,East,FUR-FUR-001,Furniture,Furnishings,Adjustable Desk Lamp,187.2,3,0.2,46.9
+6,ORD-2025-0003,2025-01-24,2025-01-27,Second Class,CUST-0002,Jordan Chen,Corporate,United States,Boston,Massachusetts,02108,East,TEC-COP-001,Technology,Copiers,Desktop Color Copier,3540,5,0.4,-794.3
+7,ORD-2025-0004,2025-02-04,2025-02-06,First Class,CUST-0009,Drew Jenkins,Home Office,United States,Chicago,Illinois,60601,Central,TEC-PHO-001,Technology,Phones,Business Smartphone,3355.8,6,0.3,-240.9
+8,ORD-2025-0004,2025-02-04,2025-02-06,First Class,CUST-0009,Drew Jenkins,Home Office,United States,Chicago,Illinois,60601,Central,FUR-FUR-001,Furniture,Furnishings,Adjustable Desk Lamp,78,1,0,20.3
+9,ORD-2025-0005,2025-02-10,2025-02-10,Same Day,CUST-0016,Emery Reed,Consumer,United States,Denver,Colorado,80202,West,FUR-TAB-001,Furniture,Tables,Maple Conference Table,778.8,2,0.4,-172.7
+10,ORD-2025-0005,2025-02-10,2025-02-10,Same Day,CUST-0016,Emery Reed,Consumer,United States,Denver,Colorado,80202,West,TEC-PHO-001,Technology,Phones,Business Smartphone,3036.2,4,0.05,636.7
+11,ORD-2025-0006,2025-02-21,2025-02-26,Standard Class,CUST-0003,Morgan Diaz,Home Office,United States,Miami,Florida,33101,South,OFF-STO-001,Office Supplies,Storage,Stackable File Box,197.5,5,0,77
+12,ORD-2025-0006,2025-02-21,2025-02-26,Standard Class,CUST-0003,Morgan Diaz,Home Office,United States,Miami,Florida,33101,South,FUR-TAB-001,Furniture,Tables,Maple Conference Table,4088.7,7,0.1,794.2
+13,ORD-2025-0007,2025-03-04,2025-03-07,Second Class,CUST-0010,Quinn Kelly,Consumer,United States,San Francisco,California,94103,West,TEC-MAC-001,Technology,Machines,Compact Label Printer,312.55,1,0.05,84.25
+14,ORD-2025-0007,2025-03-04,2025-03-07,Second Class,CUST-0010,Quinn Kelly,Consumer,United States,San Francisco,California,94103,West,OFF-STO-001,Office Supplies,Storage,Stackable File Box,94.8,3,0.2,19.5
+15,ORD-2025-0008,2025-03-15,2025-03-17,First Class,CUST-0017,Blake Sullivan,Corporate,United States,Philadelphia,Pennsylvania,19103,East,OFF-PAP-001,Office Supplies,Paper,Premium Copy Paper,45,4,0.1,11.5
+16,ORD-2025-0008,2025-03-15,2025-03-17,First Class,CUST-0017,Blake Sullivan,Corporate,United States,Philadelphia,Pennsylvania,19103,East,TEC-MAC-001,Technology,Machines,Compact Label Printer,1381.8,6,0.3,59.1
+17,ORD-2025-0009,2025-03-26,2025-03-26,Same Day,CUST-0004,Taylor Evans,Consumer,United States,Minneapolis,Minnesota,55401,Central,TEC-ACC-001,Technology,Accessories,Wireless Keyboard,526.4,7,0.2,161.9
+18,ORD-2025-0009,2025-03-26,2025-03-26,Same Day,CUST-0004,Taylor Evans,Consumer,United States,Minneapolis,Minnesota,55401,Central,OFF-PAP-001,Office Supplies,Paper,Premium Copy Paper,15,2,0.4,-4.9
+19,ORD-2025-0010,2025-04-01,2025-04-06,Standard Class,CUST-0011,Alex Morgan,Corporate,United States,New York City,New York,10001,East,FUR-BOO-001,Furniture,Bookcases,Five-Shelf Bookcase,449.4,3,0.3,4.9
+20,ORD-2025-0010,2025-04-01,2025-04-06,Standard Class,CUST-0011,Alex Morgan,Corporate,United States,New York City,New York,10001,East,TEC-ACC-001,Technology,Accessories,Wireless Keyboard,470,5,0,204.5
+21,ORD-2025-0011,2025-04-12,2025-04-15,Second Class,CUST-0018,Sage Thompson,Home Office,United States,Atlanta,Georgia,30303,South,OFF-ART-001,Office Supplies,Art,Professional Marker Set,67.5,6,0.4,7.8
+22,ORD-2025-0011,2025-04-12,2025-04-15,Second Class,CUST-0018,Sage Thompson,Home Office,United States,Atlanta,Georgia,30303,South,FUR-BOO-001,Furniture,Bookcases,Five-Shelf Bookcase,203.3,1,0.05,44
+23,ORD-2025-0012,2025-04-23,2025-04-25,First Class,CUST-0005,Riley Foster,Corporate,United States,Seattle,Washington,98101,West,FUR-CHA-001,Furniture,Chairs,Ergonomic Task Chair,578,2,0,199.3
+24,ORD-2025-0012,2025-04-23,2025-04-25,First Class,CUST-0005,Riley Foster,Corporate,United States,Seattle,Washington,98101,West,OFF-ART-001,Office Supplies,Art,Professional Marker Set,67.5,4,0.1,25.2
+25,ORD-2025-0013,2025-05-04,2025-05-04,Same Day,CUST-0012,Reese Nelson,Home Office,United States,Austin,Texas,78701,South,OFF-BIN-001,Office Supplies,Binders,Heavy-Duty Binder,114,5,0.05,49
+26,ORD-2025-0013,2025-05-04,2025-05-04,Same Day,CUST-0012,Reese Nelson,Home Office,United States,Austin,Texas,78701,South,FUR-CHA-001,Furniture,Chairs,Ergonomic Task Chair,1618.4,7,0.2,335.9
+27,ORD-2025-0014,2025-05-15,2025-05-20,Standard Class,CUST-0019,Finley Vega,Consumer,United States,St. Louis,Missouri,63101,Central,TEC-COP-001,Technology,Copiers,Desktop Color Copier,1062,1,0.1,186.5
+28,ORD-2025-0014,2025-05-15,2025-05-20,Standard Class,CUST-0019,Finley Vega,Consumer,United States,St. Louis,Missouri,63101,Central,OFF-BIN-001,Office Supplies,Binders,Heavy-Duty Binder,50.4,3,0.3,5.4
+29,ORD-2025-0015,2025-05-21,2025-05-24,Second Class,CUST-0006,Casey Gupta,Home Office,United States,Boston,Massachusetts,02108,East,FUR-FUR-001,Furniture,Furnishings,Adjustable Desk Lamp,249.6,4,0.2,68.3
+30,ORD-2025-0015,2025-05-21,2025-05-24,Second Class,CUST-0006,Casey Gupta,Home Office,United States,Boston,Massachusetts,02108,East,TEC-COP-001,Technology,Copiers,Desktop Color Copier,4248,6,0.4,-951.3
+31,ORD-2025-0016,2025-06-01,2025-06-03,First Class,CUST-0013,Skyler Ortiz,Consumer,United States,Chicago,Illinois,60601,Central,TEC-PHO-001,Technology,Phones,Business Smartphone,3915.1,7,0.3,-279.6
+32,ORD-2025-0016,2025-06-01,2025-06-03,First Class,CUST-0013,Skyler Ortiz,Consumer,United States,Chicago,Illinois,60601,Central,FUR-FUR-001,Furniture,Furnishings,Adjustable Desk Lamp,156,2,0,57.3
+33,ORD-2025-0017,2025-06-12,2025-06-12,Same Day,CUST-0020,Harper Williams,Corporate,United States,Denver,Colorado,80202,West,FUR-TAB-001,Furniture,Tables,Maple Conference Table,1168.2,3,0.4,-251.3
+34,ORD-2025-0017,2025-06-12,2025-06-12,Same Day,CUST-0020,Harper Williams,Corporate,United States,Denver,Colorado,80202,West,TEC-PHO-001,Technology,Phones,Business Smartphone,3795.25,5,0.05,797.75
+35,ORD-2025-0018,2025-06-23,2025-06-28,Standard Class,CUST-0007,Parker Hayes,Consumer,United States,Miami,Florida,33101,South,OFF-STO-001,Office Supplies,Storage,Stackable File Box,237,6,0,94.5
+36,ORD-2025-0018,2025-06-23,2025-06-28,Standard Class,CUST-0007,Parker Hayes,Consumer,United States,Miami,Florida,33101,South,FUR-TAB-001,Furniture,Tables,Maple Conference Table,584.1,1,0.1,97.6
+37,ORD-2025-0019,2025-07-04,2025-07-07,Second Class,CUST-0014,Jamie Patel,Corporate,United States,San Francisco,California,94103,West,TEC-MAC-001,Technology,Machines,Compact Label Printer,625.1,2,0.05,177.8
+38,ORD-2025-0019,2025-07-04,2025-07-07,Second Class,CUST-0014,Jamie Patel,Corporate,United States,San Francisco,California,94103,West,OFF-STO-001,Office Supplies,Storage,Stackable File Box,126.4,4,0.2,29.1
+39,ORD-2025-0020,2025-07-10,2025-07-12,First Class,CUST-0001,Avery Brooks,Consumer,United States,Philadelphia,Pennsylvania,19103,East,OFF-PAP-001,Office Supplies,Paper,Premium Copy Paper,56.25,5,0.1,16.55
+40,ORD-2025-0020,2025-07-10,2025-07-12,First Class,CUST-0001,Avery Brooks,Consumer,United States,Philadelphia,Pennsylvania,19103,East,TEC-MAC-001,Technology,Machines,Compact Label Printer,1612.1,7,0.3,70.4
+41,ORD-2025-0021,2025-07-21,2025-07-21,Same Day,CUST-0008,Cameron Ito,Corporate,United States,Minneapolis,Minnesota,55401,Central,TEC-ACC-001,Technology,Accessories,Wireless Keyboard,75.2,1,0.2,16.7
+42,ORD-2025-0021,2025-07-21,2025-07-21,Same Day,CUST-0008,Cameron Ito,Corporate,United States,Minneapolis,Minnesota,55401,Central,OFF-PAP-001,Office Supplies,Paper,Premium Copy Paper,22.5,3,0.4,-3.6
+43,ORD-2025-0022,2025-08-01,2025-08-06,Standard Class,CUST-0015,Rowan Quinn,Home Office,United States,New York City,New York,10001,East,FUR-BOO-001,Furniture,Bookcases,Five-Shelf Bookcase,599.2,4,0.3,12.7
+44,ORD-2025-0022,2025-08-01,2025-08-06,Standard Class,CUST-0015,Rowan Quinn,Home Office,United States,New York City,New York,10001,East,TEC-ACC-001,Technology,Accessories,Wireless Keyboard,564,6,0,247.5
+45,ORD-2025-0023,2025-08-12,2025-08-15,Second Class,CUST-0002,Jordan Chen,Corporate,United States,Atlanta,Georgia,30303,South,OFF-ART-001,Office Supplies,Art,Professional Marker Set,78.75,7,0.4,10.65
+46,ORD-2025-0023,2025-08-12,2025-08-15,Second Class,CUST-0002,Jordan Chen,Corporate,United States,Atlanta,Georgia,30303,South,FUR-BOO-001,Furniture,Bookcases,Five-Shelf Bookcase,406.6,2,0.05,105.3
+47,ORD-2025-0024,2025-08-23,2025-08-25,First Class,CUST-0009,Drew Jenkins,Home Office,United States,Seattle,Washington,98101,West,FUR-CHA-001,Furniture,Chairs,Ergonomic Task Chair,867,3,0,307.3
+48,ORD-2025-0024,2025-08-23,2025-08-25,First Class,CUST-0009,Drew Jenkins,Home Office,United States,Seattle,Washington,98101,West,OFF-ART-001,Office Supplies,Art,Professional Marker Set,84.38,5,0.1,33.68
+49,ORD-2025-0025,2025-08-29,2025-08-29,Same Day,CUST-0016,Emery Reed,Consumer,United States,Austin,Texas,78701,South,OFF-BIN-001,Office Supplies,Binders,Heavy-Duty Binder,136.8,6,0.05,60.3
+50,ORD-2025-0025,2025-08-29,2025-08-29,Same Day,CUST-0016,Emery Reed,Consumer,United States,Austin,Texas,78701,South,FUR-CHA-001,Furniture,Chairs,Ergonomic Task Chair,231.2,1,0.2,34.7
+51,ORD-2025-0026,2025-09-09,2025-09-14,Standard Class,CUST-0003,Morgan Diaz,Home Office,United States,St. Louis,Missouri,63101,Central,TEC-COP-001,Technology,Copiers,Desktop Color Copier,2124,2,0.1,383.5
+52,ORD-2025-0026,2025-09-09,2025-09-14,Standard Class,CUST-0003,Morgan Diaz,Home Office,United States,St. Louis,Missouri,63101,Central,OFF-BIN-001,Office Supplies,Binders,Heavy-Duty Binder,67.2,4,0.3,10.7
+53,ORD-2025-0027,2025-09-20,2025-09-23,Second Class,CUST-0010,Quinn Kelly,Consumer,United States,Boston,Massachusetts,02108,East,FUR-FUR-001,Furniture,Furnishings,Adjustable Desk Lamp,312,5,0.2,89.7
+54,ORD-2025-0027,2025-09-20,2025-09-23,Second Class,CUST-0010,Quinn Kelly,Consumer,United States,Boston,Massachusetts,02108,East,TEC-COP-001,Technology,Copiers,Desktop Color Copier,4956,7,0.4,-1108.3
+55,ORD-2025-0028,2025-10-01,2025-10-03,First Class,CUST-0017,Blake Sullivan,Corporate,United States,Chicago,Illinois,60601,Central,TEC-PHO-001,Technology,Phones,Business Smartphone,559.3,1,0.3,-47.4
+56,ORD-2025-0028,2025-10-01,2025-10-03,First Class,CUST-0017,Blake Sullivan,Corporate,United States,Chicago,Illinois,60601,Central,FUR-FUR-001,Furniture,Furnishings,Adjustable Desk Lamp,234,3,0,94.3
+57,ORD-2025-0029,2025-10-12,2025-10-12,Same Day,CUST-0004,Taylor Evans,Consumer,United States,Denver,Colorado,80202,West,FUR-TAB-001,Furniture,Tables,Maple Conference Table,1557.6,4,0.4,-329.9
+58,ORD-2025-0029,2025-10-12,2025-10-12,Same Day,CUST-0004,Taylor Evans,Consumer,United States,Denver,Colorado,80202,West,TEC-PHO-001,Technology,Phones,Business Smartphone,4554.3,6,0.05,958.8
+59,ORD-2025-0030,2025-10-18,2025-10-23,Standard Class,CUST-0011,Alex Morgan,Corporate,United States,Miami,Florida,33101,South,OFF-STO-001,Office Supplies,Storage,Stackable File Box,276.5,7,0,112
+60,ORD-2025-0030,2025-10-18,2025-10-23,Standard Class,CUST-0011,Alex Morgan,Corporate,United States,Miami,Florida,33101,South,FUR-TAB-001,Furniture,Tables,Maple Conference Table,1168.2,2,0.1,213.7
+61,ORD-2025-0031,2025-10-29,2025-11-01,Second Class,CUST-0018,Sage Thompson,Home Office,United States,San Francisco,California,94103,West,TEC-MAC-001,Technology,Machines,Compact Label Printer,937.65,3,0.05,271.35
+62,ORD-2025-0031,2025-10-29,2025-11-01,Second Class,CUST-0018,Sage Thompson,Home Office,United States,San Francisco,California,94103,West,OFF-STO-001,Office Supplies,Storage,Stackable File Box,158,5,0.2,38.7
+63,ORD-2025-0032,2025-11-09,2025-11-11,First Class,CUST-0005,Riley Foster,Corporate,United States,Philadelphia,Pennsylvania,19103,East,OFF-PAP-001,Office Supplies,Paper,Premium Copy Paper,67.5,6,0.1,21.6
+64,ORD-2025-0032,2025-11-09,2025-11-11,First Class,CUST-0005,Riley Foster,Corporate,United States,Philadelphia,Pennsylvania,19103,East,TEC-MAC-001,Technology,Machines,Compact Label Printer,230.3,1,0.3,2.6
+65,ORD-2025-0033,2025-11-20,2025-11-20,Same Day,CUST-0012,Reese Nelson,Home Office,United States,Minneapolis,Minnesota,55401,Central,TEC-ACC-001,Technology,Accessories,Wireless Keyboard,150.4,2,0.2,40.9
+66,ORD-2025-0033,2025-11-20,2025-11-20,Same Day,CUST-0012,Reese Nelson,Home Office,United States,Minneapolis,Minnesota,55401,Central,OFF-PAP-001,Office Supplies,Paper,Premium Copy Paper,30,4,0.4,-2.3
+67,ORD-2025-0034,2025-12-01,2025-12-06,Standard Class,CUST-0019,Finley Vega,Consumer,United States,New York City,New York,10001,East,FUR-BOO-001,Furniture,Bookcases,Five-Shelf Bookcase,749,5,0.3,20.5
+68,ORD-2025-0034,2025-12-01,2025-12-06,Standard Class,CUST-0019,Finley Vega,Consumer,United States,New York City,New York,10001,East,TEC-ACC-001,Technology,Accessories,Wireless Keyboard,658,7,0,290.5
+69,ORD-2025-0035,2025-12-07,2025-12-10,Second Class,CUST-0006,Casey Gupta,Home Office,United States,Atlanta,Georgia,30303,South,OFF-ART-001,Office Supplies,Art,Professional Marker Set,11.25,1,0.4,-6.45
+70,ORD-2025-0035,2025-12-07,2025-12-10,Second Class,CUST-0006,Casey Gupta,Home Office,United States,Atlanta,Georgia,30303,South,FUR-BOO-001,Furniture,Bookcases,Five-Shelf Bookcase,609.9,3,0.05,166.6
+71,ORD-2025-0036,2025-12-18,2025-12-20,First Class,CUST-0013,Skyler Ortiz,Consumer,United States,Seattle,Washington,98101,West,FUR-CHA-001,Furniture,Chairs,Ergonomic Task Chair,1156,4,0,415.3
+72,ORD-2025-0036,2025-12-18,2025-12-20,First Class,CUST-0013,Skyler Ortiz,Consumer,United States,Seattle,Washington,98101,West,OFF-ART-001,Office Supplies,Art,Professional Marker Set,101.25,6,0.1,42.15
+73,ORD-2025-0037,2025-12-29,2025-12-29,Same Day,CUST-0020,Harper Williams,Corporate,United States,Austin,Texas,78701,South,OFF-BIN-001,Office Supplies,Binders,Heavy-Duty Binder,159.6,7,0.05,71.6
+74,ORD-2025-0037,2025-12-29,2025-12-29,Same Day,CUST-0020,Harper Williams,Corporate,United States,Austin,Texas,78701,South,FUR-CHA-001,Furniture,Chairs,Ergonomic Task Chair,462.4,2,0.2,84.9
+75,ORD-2026-0038,2026-01-09,2026-01-14,Standard Class,CUST-0007,Parker Hayes,Consumer,United States,St. Louis,Missouri,63101,Central,TEC-COP-001,Technology,Copiers,Desktop Color Copier,3186,3,0.1,580.5
+76,ORD-2026-0038,2026-01-09,2026-01-14,Standard Class,CUST-0007,Parker Hayes,Consumer,United States,St. Louis,Missouri,63101,Central,OFF-BIN-001,Office Supplies,Binders,Heavy-Duty Binder,84,5,0.3,16
+77,ORD-2026-0039,2026-01-20,2026-01-23,Second Class,CUST-0014,Jamie Patel,Corporate,United States,Boston,Massachusetts,02108,East,FUR-FUR-001,Furniture,Furnishings,Adjustable Desk Lamp,374.4,6,0.2,111.1
+78,ORD-2026-0039,2026-01-20,2026-01-23,Second Class,CUST-0014,Jamie Patel,Corporate,United States,Boston,Massachusetts,02108,East,TEC-COP-001,Technology,Copiers,Desktop Color Copier,708,1,0.4,-166.3
+79,ORD-2026-0040,2026-01-26,2026-01-28,First Class,CUST-0001,Avery Brooks,Consumer,United States,Chicago,Illinois,60601,Central,TEC-PHO-001,Technology,Phones,Business Smartphone,1118.6,2,0.3,-86.1
+80,ORD-2026-0040,2026-01-26,2026-01-28,First Class,CUST-0001,Avery Brooks,Consumer,United States,Chicago,Illinois,60601,Central,FUR-FUR-001,Furniture,Furnishings,Adjustable Desk Lamp,312,4,0,131.3
+81,ORD-2026-0041,2026-02-06,2026-02-06,Same Day,CUST-0008,Cameron Ito,Corporate,United States,Denver,Colorado,80202,West,FUR-TAB-001,Furniture,Tables,Maple Conference Table,1947,5,0.4,-408.5
+82,ORD-2026-0041,2026-02-06,2026-02-06,Same Day,CUST-0008,Cameron Ito,Corporate,United States,Denver,Colorado,80202,West,TEC-PHO-001,Technology,Phones,Business Smartphone,5313.35,7,0.05,1119.85
+83,ORD-2026-0042,2026-02-17,2026-02-22,Standard Class,CUST-0015,Rowan Quinn,Home Office,United States,Miami,Florida,33101,South,OFF-STO-001,Office Supplies,Storage,Stackable File Box,39.5,1,0,7
+84,ORD-2026-0042,2026-02-17,2026-02-22,Standard Class,CUST-0015,Rowan Quinn,Home Office,United States,Miami,Florida,33101,South,FUR-TAB-001,Furniture,Tables,Maple Conference Table,1752.3,3,0.1,329.8
+85,ORD-2026-0043,2026-02-28,2026-03-03,Second Class,CUST-0002,Jordan Chen,Corporate,United States,San Francisco,California,94103,West,TEC-MAC-001,Technology,Machines,Compact Label Printer,1250.2,4,0.05,364.9
+86,ORD-2026-0043,2026-02-28,2026-03-03,Second Class,CUST-0002,Jordan Chen,Corporate,United States,San Francisco,California,94103,West,OFF-STO-001,Office Supplies,Storage,Stackable File Box,189.6,6,0.2,48.3
+87,ORD-2026-0044,2026-03-11,2026-03-13,First Class,CUST-0009,Drew Jenkins,Home Office,United States,Philadelphia,Pennsylvania,19103,East,OFF-PAP-001,Office Supplies,Paper,Premium Copy Paper,78.75,7,0.1,26.65
+88,ORD-2026-0044,2026-03-11,2026-03-13,First Class,CUST-0009,Drew Jenkins,Home Office,United States,Philadelphia,Pennsylvania,19103,East,TEC-MAC-001,Technology,Machines,Compact Label Printer,460.6,2,0.3,13.9
+89,ORD-2026-0045,2026-03-17,2026-03-17,Same Day,CUST-0016,Emery Reed,Consumer,United States,Minneapolis,Minnesota,55401,Central,TEC-ACC-001,Technology,Accessories,Wireless Keyboard,225.6,3,0.2,65.1
+90,ORD-2026-0045,2026-03-17,2026-03-17,Same Day,CUST-0016,Emery Reed,Consumer,United States,Minneapolis,Minnesota,55401,Central,OFF-PAP-001,Office Supplies,Paper,Premium Copy Paper,37.5,5,0.4,-1
+91,ORD-2026-0046,2026-03-28,2026-04-02,Standard Class,CUST-0003,Morgan Diaz,Home Office,United States,New York City,New York,10001,East,FUR-BOO-001,Furniture,Bookcases,Five-Shelf Bookcase,898.8,6,0.3,28.3
+92,ORD-2026-0046,2026-03-28,2026-04-02,Standard Class,CUST-0003,Morgan Diaz,Home Office,United States,New York City,New York,10001,East,TEC-ACC-001,Technology,Accessories,Wireless Keyboard,94,1,0,32.5
+93,ORD-2026-0047,2026-04-08,2026-04-11,Second Class,CUST-0010,Quinn Kelly,Consumer,United States,Atlanta,Georgia,30303,South,OFF-ART-001,Office Supplies,Art,Professional Marker Set,22.5,2,0.4,-3.6
+94,ORD-2026-0047,2026-04-08,2026-04-11,Second Class,CUST-0010,Quinn Kelly,Consumer,United States,Atlanta,Georgia,30303,South,FUR-BOO-001,Furniture,Bookcases,Five-Shelf Bookcase,813.2,4,0.05,227.9
+95,ORD-2026-0048,2026-04-19,2026-04-21,First Class,CUST-0017,Blake Sullivan,Corporate,United States,Seattle,Washington,98101,West,FUR-CHA-001,Furniture,Chairs,Ergonomic Task Chair,1445,5,0,523.3
+96,ORD-2026-0048,2026-04-19,2026-04-21,First Class,CUST-0017,Blake Sullivan,Corporate,United States,Seattle,Washington,98101,West,OFF-ART-001,Office Supplies,Art,Professional Marker Set,118.13,7,0.1,50.63
+97,ORD-2026-0049,2026-04-30,2026-04-30,Same Day,CUST-0004,Taylor Evans,Consumer,United States,Austin,Texas,78701,South,OFF-BIN-001,Office Supplies,Binders,Heavy-Duty Binder,22.8,1,0.05,3.8
+98,ORD-2026-0049,2026-04-30,2026-04-30,Same Day,CUST-0004,Taylor Evans,Consumer,United States,Austin,Texas,78701,South,FUR-CHA-001,Furniture,Chairs,Ergonomic Task Chair,693.6,3,0.2,135.1
+99,ORD-2026-0050,2026-05-06,2026-05-11,Standard Class,CUST-0011,Alex Morgan,Corporate,United States,St. Louis,Missouri,63101,Central,TEC-COP-001,Technology,Copiers,Desktop Color Copier,4248,4,0.1,777.5
+100,ORD-2026-0050,2026-05-06,2026-05-11,Standard Class,CUST-0011,Alex Morgan,Corporate,United States,St. Louis,Missouri,63101,Central,OFF-BIN-001,Office Supplies,Binders,Heavy-Duty Binder,100.8,6,0.3,21.3
+101,ORD-2026-0051,2026-05-17,2026-05-20,Second Class,CUST-0018,Sage Thompson,Home Office,United States,Boston,Massachusetts,02108,East,FUR-FUR-001,Furniture,Furnishings,Adjustable Desk Lamp,436.8,7,0.2,132.5
+102,ORD-2026-0051,2026-05-17,2026-05-20,Second Class,CUST-0018,Sage Thompson,Home Office,United States,Boston,Massachusetts,02108,East,TEC-COP-001,Technology,Copiers,Desktop Color Copier,1416,2,0.4,-323.3
+103,ORD-2026-0052,2026-05-28,2026-05-30,First Class,CUST-0005,Riley Foster,Corporate,United States,Chicago,Illinois,60601,Central,TEC-PHO-001,Technology,Phones,Business Smartphone,1677.9,3,0.3,-124.8
+104,ORD-2026-0052,2026-05-28,2026-05-30,First Class,CUST-0005,Riley Foster,Corporate,United States,Chicago,Illinois,60601,Central,FUR-FUR-001,Furniture,Furnishings,Adjustable Desk Lamp,390,5,0,168.3
+105,ORD-2026-0053,2026-06-08,2026-06-08,Same Day,CUST-0012,Reese Nelson,Home Office,United States,Denver,Colorado,80202,West,FUR-TAB-001,Furniture,Tables,Maple Conference Table,2336.4,6,0.4,-487.1
+106,ORD-2026-0053,2026-06-08,2026-06-08,Same Day,CUST-0012,Reese Nelson,Home Office,United States,Denver,Colorado,80202,West,TEC-PHO-001,Technology,Phones,Business Smartphone,759.05,1,0.05,153.55
+107,ORD-2026-0054,2026-06-19,2026-06-24,Standard Class,CUST-0019,Finley Vega,Consumer,United States,Miami,Florida,33101,South,OFF-STO-001,Office Supplies,Storage,Stackable File Box,79,2,0,24.5
+108,ORD-2026-0054,2026-06-19,2026-06-24,Standard Class,CUST-0019,Finley Vega,Consumer,United States,Miami,Florida,33101,South,FUR-TAB-001,Furniture,Tables,Maple Conference Table,2336.4,4,0.1,445.9
+109,ORD-2026-0055,2026-06-25,2026-06-28,Second Class,CUST-0006,Casey Gupta,Home Office,United States,San Francisco,California,94103,West,TEC-MAC-001,Technology,Machines,Compact Label Printer,1562.75,5,0.05,458.45
+110,ORD-2026-0055,2026-06-25,2026-06-28,Second Class,CUST-0006,Casey Gupta,Home Office,United States,San Francisco,California,94103,West,OFF-STO-001,Office Supplies,Storage,Stackable File Box,221.2,7,0.2,57.9
+111,ORD-2026-0056,2026-07-06,2026-07-08,First Class,CUST-0013,Skyler Ortiz,Consumer,United States,Philadelphia,Pennsylvania,19103,East,OFF-PAP-001,Office Supplies,Paper,Premium Copy Paper,11.25,1,0.1,-3.65
+112,ORD-2026-0056,2026-07-06,2026-07-08,First Class,CUST-0013,Skyler Ortiz,Consumer,United States,Philadelphia,Pennsylvania,19103,East,TEC-MAC-001,Technology,Machines,Compact Label Printer,690.9,3,0.3,25.2
+113,ORD-2026-0057,2026-07-17,2026-07-17,Same Day,CUST-0020,Harper Williams,Corporate,United States,Minneapolis,Minnesota,55401,Central,TEC-ACC-001,Technology,Accessories,Wireless Keyboard,300.8,4,0.2,89.3
+114,ORD-2026-0057,2026-07-17,2026-07-17,Same Day,CUST-0020,Harper Williams,Corporate,United States,Minneapolis,Minnesota,55401,Central,OFF-PAP-001,Office Supplies,Paper,Premium Copy Paper,45,6,0.4,0.3
+115,ORD-2026-0058,2026-07-28,2026-08-02,Standard Class,CUST-0007,Parker Hayes,Consumer,United States,New York City,New York,10001,East,FUR-BOO-001,Furniture,Bookcases,Five-Shelf Bookcase,1048.6,7,0.3,36.1
+116,ORD-2026-0058,2026-07-28,2026-08-02,Standard Class,CUST-0007,Parker Hayes,Consumer,United States,New York City,New York,10001,East,TEC-ACC-001,Technology,Accessories,Wireless Keyboard,188,2,0,75.5
+117,ORD-2026-0059,2026-08-08,2026-08-11,Second Class,CUST-0014,Jamie Patel,Corporate,United States,Atlanta,Georgia,30303,South,OFF-ART-001,Office Supplies,Art,Professional Marker Set,33.75,3,0.4,-0.75
+118,ORD-2026-0059,2026-08-08,2026-08-11,Second Class,CUST-0014,Jamie Patel,Corporate,United States,Atlanta,Georgia,30303,South,FUR-BOO-001,Furniture,Bookcases,Five-Shelf Bookcase,1016.5,5,0.05,289.2
+119,ORD-2026-0060,2026-08-14,2026-08-16,First Class,CUST-0001,Avery Brooks,Consumer,United States,Seattle,Washington,98101,West,FUR-CHA-001,Furniture,Chairs,Ergonomic Task Chair,1734,6,0,631.3
+120,ORD-2026-0060,2026-08-14,2026-08-16,First Class,CUST-0001,Avery Brooks,Consumer,United States,Seattle,Washington,98101,West,OFF-ART-001,Office Supplies,Art,Professional Marker Set,16.88,1,0.1,-0.22
+121,ORD-2026-0061,2026-08-25,2026-08-25,Same Day,CUST-0008,Cameron Ito,Corporate,United States,Austin,Texas,78701,South,OFF-BIN-001,Office Supplies,Binders,Heavy-Duty Binder,45.6,2,0.05,15.1
+122,ORD-2026-0061,2026-08-25,2026-08-25,Same Day,CUST-0008,Cameron Ito,Corporate,United States,Austin,Texas,78701,South,FUR-CHA-001,Furniture,Chairs,Ergonomic Task Chair,924.8,4,0.2,185.3
+123,ORD-2026-0062,2026-09-05,2026-09-10,Standard Class,CUST-0015,Rowan Quinn,Home Office,United States,St. Louis,Missouri,63101,Central,TEC-COP-001,Technology,Copiers,Desktop Color Copier,5310,5,0.1,974.5
+124,ORD-2026-0062,2026-09-05,2026-09-10,Standard Class,CUST-0015,Rowan Quinn,Home Office,United States,St. Louis,Missouri,63101,Central,OFF-BIN-001,Office Supplies,Binders,Heavy-Duty Binder,117.6,7,0.3,26.6
+125,ORD-2026-0063,2026-09-16,2026-09-19,Second Class,CUST-0002,Jordan Chen,Corporate,United States,Boston,Massachusetts,02108,East,FUR-FUR-001,Furniture,Furnishings,Adjustable Desk Lamp,62.4,1,0.2,4.1
+126,ORD-2026-0063,2026-09-16,2026-09-19,Second Class,CUST-0002,Jordan Chen,Corporate,United States,Boston,Massachusetts,02108,East,TEC-COP-001,Technology,Copiers,Desktop Color Copier,2124,3,0.4,-480.3
+127,ORD-2026-0064,2026-09-27,2026-09-29,First Class,CUST-0009,Drew Jenkins,Home Office,United States,Chicago,Illinois,60601,Central,TEC-PHO-001,Technology,Phones,Business Smartphone,2237.2,4,0.3,-163.5
+128,ORD-2026-0064,2026-09-27,2026-09-29,First Class,CUST-0009,Drew Jenkins,Home Office,United States,Chicago,Illinois,60601,Central,FUR-FUR-001,Furniture,Furnishings,Adjustable Desk Lamp,468,6,0,205.3
+129,ORD-2026-0065,2026-10-03,2026-10-03,Same Day,CUST-0016,Emery Reed,Consumer,United States,Denver,Colorado,80202,West,FUR-TAB-001,Furniture,Tables,Maple Conference Table,2725.8,7,0.4,-565.7
+130,ORD-2026-0065,2026-10-03,2026-10-03,Same Day,CUST-0016,Emery Reed,Consumer,United States,Denver,Colorado,80202,West,TEC-PHO-001,Technology,Phones,Business Smartphone,1518.1,2,0.05,314.6
+131,ORD-2026-0066,2026-10-14,2026-10-19,Standard Class,CUST-0003,Morgan Diaz,Home Office,United States,Miami,Florida,33101,South,OFF-STO-001,Office Supplies,Storage,Stackable File Box,118.5,3,0,42
+132,ORD-2026-0066,2026-10-14,2026-10-19,Standard Class,CUST-0003,Morgan Diaz,Home Office,United States,Miami,Florida,33101,South,FUR-TAB-001,Furniture,Tables,Maple Conference Table,2920.5,5,0.1,562
+133,ORD-2026-0067,2026-10-25,2026-10-28,Second Class,CUST-0010,Quinn Kelly,Consumer,United States,San Francisco,California,94103,West,TEC-MAC-001,Technology,Machines,Compact Label Printer,1875.3,6,0.05,552
+134,ORD-2026-0067,2026-10-25,2026-10-28,Second Class,CUST-0010,Quinn Kelly,Consumer,United States,San Francisco,California,94103,West,OFF-STO-001,Office Supplies,Storage,Stackable File Box,31.6,1,0.2,0.3
+135,ORD-2026-0068,2026-11-05,2026-11-07,First Class,CUST-0017,Blake Sullivan,Corporate,United States,Philadelphia,Pennsylvania,19103,East,OFF-PAP-001,Office Supplies,Paper,Premium Copy Paper,22.5,2,0.1,1.4
+136,ORD-2026-0068,2026-11-05,2026-11-07,First Class,CUST-0017,Blake Sullivan,Corporate,United States,Philadelphia,Pennsylvania,19103,East,TEC-MAC-001,Technology,Machines,Compact Label Printer,921.2,4,0.3,36.5
+137,ORD-2026-0069,2026-11-16,2026-11-16,Same Day,CUST-0004,Taylor Evans,Consumer,United States,Minneapolis,Minnesota,55401,Central,TEC-ACC-001,Technology,Accessories,Wireless Keyboard,376,5,0.2,113.5
+138,ORD-2026-0069,2026-11-16,2026-11-16,Same Day,CUST-0004,Taylor Evans,Consumer,United States,Minneapolis,Minnesota,55401,Central,OFF-PAP-001,Office Supplies,Paper,Premium Copy Paper,52.5,7,0.4,1.6
+139,ORD-2026-0070,2026-11-22,2026-11-27,Standard Class,CUST-0011,Alex Morgan,Corporate,United States,New York City,New York,10001,East,FUR-BOO-001,Furniture,Bookcases,Five-Shelf Bookcase,149.8,1,0.3,-10.7
+140,ORD-2026-0070,2026-11-22,2026-11-27,Standard Class,CUST-0011,Alex Morgan,Corporate,United States,New York City,New York,10001,East,TEC-ACC-001,Technology,Accessories,Wireless Keyboard,282,3,0,118.5
+141,ORD-2026-0071,2026-12-03,2026-12-06,Second Class,CUST-0018,Sage Thompson,Home Office,United States,Atlanta,Georgia,30303,South,OFF-ART-001,Office Supplies,Art,Professional Marker Set,45,4,0.4,2.1
+142,ORD-2026-0071,2026-12-03,2026-12-06,Second Class,CUST-0018,Sage Thompson,Home Office,United States,Atlanta,Georgia,30303,South,FUR-BOO-001,Furniture,Bookcases,Five-Shelf Bookcase,1219.8,6,0.05,350.5
+143,ORD-2026-0072,2026-12-14,2026-12-16,First Class,CUST-0005,Riley Foster,Corporate,United States,Seattle,Washington,98101,West,FUR-CHA-001,Furniture,Chairs,Ergonomic Task Chair,2023,7,0,739.3
+144,ORD-2026-0072,2026-12-14,2026-12-16,First Class,CUST-0005,Riley Foster,Corporate,United States,Seattle,Washington,98101,West,OFF-ART-001,Office Supplies,Art,Professional Marker Set,33.75,2,0.1,8.25
