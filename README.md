@@ -133,6 +133,31 @@ $orders = Import-PSDataFrame D:\sales.csv
 $orders | Describe
 ```
 
+For Excel workbooks, import the optional ImportExcel module. Omit `-WorksheetName` to read the first worksheet, or provide it explicitly:
+
+```powershell
+Import-Module ImportExcel
+$sales = Import-PSDataFrame D:\sales.xlsx
+$sales | Describe
+
+$sales = Import-PSDataFrame D:\sales.xlsx -WorksheetName Orders
+$sales | Describe
+```
+
+`.xlsx` and `.xlsm` files use `Import-Excel`; when `-WorksheetName` is omitted, ImportExcel reads the first worksheet. Excel input does not accept the flat-file-only `Schema`, `SampleSize`, `HeaderMode`, or `NameMode` options. Workbook imports keep worksheets independent rather than merging their rows implicitly.
+
+Use `-AsWorkbook` when the workbook contains multiple related worksheets. The result supports direct worksheet properties, tab completion, and an indexed `.Worksheets` collection:
+
+```powershell
+$book = Import-PSDataFrame D:\yearlySales.xlsx -AsWorkbook
+
+# Press Ctrl+Space after $book. to discover worksheet names.
+$book.January | Summarize -By Region -Sum Amount
+$book.Worksheets['December'] | Describe
+```
+
+`$book.Worksheets.Names` preserves workbook order, and each worksheet remains an independent DataFrame. `-AsWorkbook` cannot be combined with `-WorksheetName` and is not valid for flat files.
+
 `Get-PSDataFrameProfile` is the canonical profiling command; `Describe` is its concise alias. Both commands can also take a file path directly and use the same typed reader:
 
 ```powershell
@@ -189,6 +214,8 @@ Run the complete examples from the project folder with:
 ```powershell
 & ./examples/QuickStart.ps1
 & ./examples/Import.ps1
+& ./examples/ExcelImport.ps1
+& ./examples/Workbook.ps1
 & ./examples/Grouping.ps1
 & ./examples/Joins.ps1
 & ./examples/Columns.ps1
@@ -200,7 +227,8 @@ Run the complete examples from the project folder with:
 
 ## Supported functionality
 
-- `Import-PSDataFrame`: read supported flat files through PSFlatFile's typed `Import-FlatFile` reader and return a PSPandas frame. The reader module must be imported or installed separately.
+- `Import-PSDataFrame`: read supported flat files through PSFlatFile's typed `Import-FlatFile` reader or `.xlsx`/`.xlsm` worksheets through the optional ImportExcel module. Excel imports use the first worksheet by default or the worksheet named by `-WorksheetName`. The relevant reader module must be imported or installed separately.
+- `Import-PSDataFrame -AsWorkbook`: return an Excel workbook object whose ordered worksheets are independently accessible through direct tab-completable properties or `.Worksheets` indexing.
 - `ConvertTo-PSDataFrame`: collect ordinary pipeline objects into a frame; explicit columns can define an empty or stable schema. A file path also delegates to the typed reader for compatibility.
 - `ConvertFrom-PSDataFrame`: emit frame rows as ordinary PowerShell objects for existing commands, CSV writers, SQL clients, or later integrations.
 - `Get-PSDataFrameProfile` / `Describe`: return one profile row per column with type, row/null/distinct counts, samples, numeric summaries, and typed numeric or DateTime-like bounds, including DateOnly. `-AsRows` emits ordinary profile-row objects for direct pipeline filtering.
@@ -227,4 +255,4 @@ Run the test suite from the project folder:
 Invoke-Pester ./tests -Output Detailed
 ```
 
-The runnable examples are `examples/QuickStart.ps1`, `examples/Import.ps1`, `examples/Grouping.ps1`, `examples/Joins.ps1`, `examples/Columns.ps1`, `examples/Summarize.ps1`, `examples/SalesReporting.ps1`, `examples/Profile.ps1`, and `examples/RichProfile.ps1`.
+The runnable examples are `examples/QuickStart.ps1`, `examples/Import.ps1`, `examples/ExcelImport.ps1`, `examples/Workbook.ps1`, `examples/Grouping.ps1`, `examples/Joins.ps1`, `examples/Columns.ps1`, `examples/Summarize.ps1`, `examples/SalesReporting.ps1`, `examples/Profile.ps1`, and `examples/RichProfile.ps1`.

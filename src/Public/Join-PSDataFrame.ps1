@@ -6,6 +6,41 @@ function Join-PSDataFrame {
     .DESCRIPTION
     Inner, left, right, and full joins are supported. Non-key name collisions
     receive _left and _right suffixes by default.
+
+    .PARAMETER Left
+    Left-hand PSPandas data frame.
+
+    .PARAMETER Right
+    Right-hand PSPandas data frame.
+
+    .PARAMETER On
+    One or more key columns shared by both data frames.
+
+    .PARAMETER JoinType
+    Join type: Inner, Left, Right, or Full. The default is Inner.
+
+    .PARAMETER LeftSuffix
+    Suffix for a non-key column collision from the left frame.
+
+    .PARAMETER RightSuffix
+    Suffix for a non-key column collision from the right frame.
+
+    .EXAMPLE
+    $orders = @(
+        [pscustomobject]@{ OrderId = 1001; CustomerId = 'C01'; Amount = 20 }
+        [pscustomobject]@{ OrderId = 1002; CustomerId = 'C02'; Amount = 15 }
+    ) | ConvertTo-PSDataFrame
+
+    $customers = @(
+        [pscustomobject]@{ CustomerId = 'C01'; Customer = 'Ada' }
+        [pscustomobject]@{ CustomerId = 'C02'; Customer = 'Bea' }
+    ) | ConvertTo-PSDataFrame
+
+    Join-PSDataFrame -Left $orders -Right $customers -On CustomerId -JoinType Left
+
+    .EXAMPLE
+    Join-PSDataFrame -Left $orders -Right $customers -On CustomerId |
+        ConvertFrom-PSDataFrame | Format-Table
     #>
     [CmdletBinding()]
     param(

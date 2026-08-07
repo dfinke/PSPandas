@@ -203,3 +203,237 @@ namespace PSPandas
 }
 '@
 }
+
+if (-not ([System.Management.Automation.PSTypeName]'PSPandas.Workbook').Type) {
+    Add-Type -TypeDefinition @'
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Dynamic;
+
+namespace PSPandas
+{
+    public sealed class WorksheetInfo
+    {
+        public WorksheetInfo(string name, object dataFrame, int count, string[] columns)
+        {
+            Name = name ?? string.Empty;
+            DataFrame = dataFrame;
+            Count = count;
+            Columns = columns ?? Array.Empty<string>();
+        }
+
+        public string Name { get; }
+
+        public object DataFrame { get; }
+
+        public int Count { get; }
+
+        public string[] Columns { get; }
+
+        public override string ToString()
+        {
+            return Name;
+        }
+    }
+
+    public sealed class WorksheetCollection : DynamicObject, IEnumerable
+    {
+        private readonly string[] _names;
+        private readonly Dictionary<string, object> _frames;
+        private readonly WorksheetInfo[] _items;
+
+        public WorksheetCollection(string[] names, object[] frames)
+        {
+            _frames = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            var orderedNames = new List<string>();
+            var items = new List<WorksheetInfo>();
+            var sourceNames = names ?? Array.Empty<string>();
+            var sourceFrames = frames ?? Array.Empty<object>();
+
+            for (var index = 0; index < sourceNames.Length; index++)
+            {
+                var name = sourceNames[index] ?? string.Empty;
+                if (name.Length == 0 || _frames.ContainsKey(name))
+                {
+                    continue;
+                }
+
+                var frame = index < sourceFrames.Length ? sourceFrames[index] : null;
+                _frames.Add(name, frame);
+                orderedNames.Add(name);
+                var count = 0;
+                var columns = Array.Empty<string>();
+                if (frame != null)
+                {
+                    var frameType = frame.GetType();
+                    var countProperty = frameType.GetProperty("Count");
+                    var columnsProperty = frameType.GetProperty("Columns");
+                    if (countProperty != null)
+                    {
+                        count = (int)countProperty.GetValue(frame, null);
+                    }
+                    if (columnsProperty != null)
+                    {
+                        columns = (string[])columnsProperty.GetValue(frame, null);
+                    }
+                }
+                items.Add(new WorksheetInfo(name, frame, count, columns));
+            }
+
+            _names = orderedNames.ToArray();
+            _items = items.ToArray();
+        }
+
+        public string[] Names
+        {
+            get
+            {
+                var copy = new string[_names.Length];
+                Array.Copy(_names, copy, _names.Length);
+                return copy;
+            }
+        }
+
+        public int Count
+        {
+            get { return _names.Length; }
+        }
+
+        public WorksheetInfo[] Items
+        {
+            get
+            {
+                var copy = new WorksheetInfo[_items.Length];
+                Array.Copy(_items, copy, _items.Length);
+                return copy;
+            }
+        }
+
+        public object this[string name]
+        {
+            get { return GetDataFrame(name); }
+        }
+
+        public object GetDataFrame(string name)
+        {
+            if (name == null)
+            {
+                throw new KeyNotFoundException("Worksheet name cannot be null.");
+            }
+
+            object frame;
+            if (_frames.TryGetValue(name, out frame))
+            {
+                return frame;
+            }
+
+            throw new KeyNotFoundException(string.Format("Worksheet '{0}' does not exist in the workbook.", name));
+        }
+
+        public WorksheetInfo GetWorksheet(string name)
+        {
+            GetDataFrame(name);
+            for (var index = 0; index < _items.Length; index++)
+            {
+                if (string.Equals(_items[index].Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return _items[index];
+                }
+            }
+
+            throw new KeyNotFoundException(string.Format("Worksheet '{0}' does not exist in the workbook.", name));
+        }
+
+        public IEnumerator GetEnumerator()
+        {
+            return _items.GetEnumerator();
+        }
+
+        public override bool TryGetIndex(GetIndexBinder binder, object[] indexes, out object result)
+        {
+            result = null;
+            if (indexes == null || indexes.Length != 1 || !(indexes[0] is string))
+            {
+                throw new ArgumentException("Workbook worksheet indexing requires one string worksheet name.");
+            }
+
+            result = GetDataFrame((string)indexes[0]);
+            return true;
+        }
+
+        public override bool TryGetMember(GetMemberBinder binder, out object result)
+        {
+            result = GetDataFrame(binder.Name);
+            return true;
+        }
+
+        public override IEnumerable<string> GetDynamicMemberNames()
+        {
+            return _names;
+        }
+    }
+
+    public sealed class Workbook : DynamicObject
+    {
+        private readonly string[] _names;
+        private readonly Dictionary<string, object> _frames;
+
+        public Workbook(string path, string[] names, object[] frames)
+        {
+            Path = path ?? string.Empty;
+            Worksheets = new WorksheetCollection(names, frames);
+            _names = Worksheets.Names;
+            _frames = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            var sourceFrames = frames ?? Array.Empty<object>();
+            for (var index = 0; index < _names.Length; index++)
+            {
+                _frames[_names[index]] = index < sourceFrames.Length ? sourceFrames[index] : null;
+            }
+        }
+
+        public string Path { get; }
+
+        public WorksheetCollection Worksheets { get; }
+
+        public string[] SheetNames
+        {
+            get { return Worksheets.Names; }
+        }
+
+        public object this[string name]
+        {
+            get { return Worksheets.GetDataFrame(name); }
+        }
+
+        public override bool TryGetIndex(GetIndexBinder binder, object[] indexes, out object result)
+        {
+            result = null;
+            if (indexes == null || indexes.Length != 1 || !(indexes[0] is string))
+            {
+                throw new ArgumentException("Workbook indexing requires one string worksheet name.");
+            }
+
+            result = Worksheets.GetDataFrame((string)indexes[0]);
+            return true;
+        }
+
+        public override bool TryGetMember(GetMemberBinder binder, out object result)
+        {
+            result = null;
+            if (_frames.TryGetValue(binder.Name, out result))
+            {
+                return true;
+            }
+
+            throw new KeyNotFoundException(string.Format("Worksheet '{0}' does not exist in the workbook.", binder.Name));
+        }
+
+        public override IEnumerable<string> GetDynamicMemberNames()
+        {
+            return _names;
+        }
+    }
+}
+'@
+}

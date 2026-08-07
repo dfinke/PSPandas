@@ -29,5 +29,29 @@ if ($rows.Count -eq 0) {
         </CustomEntries>
       </CustomControl>
     </View>
+    <View>
+      <Name>PSPandas.Workbook</Name>
+      <ViewSelectedBy>
+        <TypeName>PSPandas.Workbook</TypeName>
+      </ViewSelectedBy>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <ExpressionBinding>
+                <ScriptBlock><![CDATA[
+$names = @($_.Worksheets.Names)
+@(
+    'PSPandas.Workbook ({0} worksheets)' -f $names.Count
+    'Path: {0}' -f $_.Path
+    'Worksheets: {0}' -f ($names -join ', ')
+) -join [Environment]::NewLine
+                ]]></ScriptBlock>
+              </ExpressionBinding>
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </View>
   </ViewDefinitions>
 </Configuration>

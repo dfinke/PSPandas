@@ -232,6 +232,102 @@ Describe 'PSPandas profiling' {
         @($imported.Rows).Count | Should -Be 2
     }
 
+    It 'validates Import-PSDataFrame file-type-specific parameters' {
+        $xlsxPath = Join-Path $TestDrive 'validation.xlsx'
+        $xlsmPath = Join-Path $TestDrive 'validation.xlsm'
+        'placeholder' | Set-Content -LiteralPath $xlsxPath
+        'placeholder' | Set-Content -LiteralPath $xlsmPath
+
+        foreach ($path in @($xlsxPath, $xlsmPath)) {
+            { Import-PSDataFrame $path -Schema ([ordered]@{ Amount = 'Decimal' }) -WorksheetName Orders } |
+                Should -Throw '*-Schema*Excel file extension*'
+            { Import-PSDataFrame $path -AsWorkbook -WorksheetName Orders } |
+                Should -Throw '*-AsWorkbook*cannot be combined*-WorksheetName*'
+        }
+
+        $flatPath = Join-Path $TestDrive 'validation.csv'
+        'Region,Amount', 'East,10' | Set-Content -LiteralPath $flatPath
+        { Import-PSDataFrame $flatPath -WorksheetName Orders } |
+            Should -Throw "*'-WorksheetName'*'.csv'*"
+        { Import-PSDataFrame $flatPath -AsWorkbook } |
+            Should -Throw "*'-AsWorkbook'*'.csv'*"
+    }
+
+    It 'imports an Excel worksheet when ImportExcel is available' {
+        $importExcelManifest = Get-Module -ListAvailable -Name ImportExcel |
+            Sort-Object Version -Descending |
+            Select-Object -First 1
+        if ($null -eq $importExcelManifest) {
+            Set-ItResult -Skipped -Because 'ImportExcel is not installed.'
+            return
+        }
+
+        Import-Module ImportExcel -Force
+        $path = Join-Path $TestDrive 'typed-orders.xlsx'
+        @(
+            [pscustomobject][ordered]@{ Region = 'East'; Units = 2; Amount = 10.50 }
+            [pscustomobject][ordered]@{ Region = 'West'; Units = 3; Amount = 20.25 }
+        ) | Export-Excel -Path $path -WorksheetName Orders -AutoSize
+
+        $imported = Import-PSDataFrame $path -WorksheetName Orders
+        $imported.GetType().FullName | Should -Be 'PSPandas.DataFrame'
+        ($imported.Columns -join ',') | Should -Be 'Region,Units,Amount'
+        @($imported.Rows).Count | Should -Be 2
+        $imported.Rows[0].Region | Should -Be 'East'
+        $imported.Rows[1].Units | Should -Be 3
+
+        $firstWorksheetImport = Import-PSDataFrame $path
+        ($firstWorksheetImport.Columns -join ',') | Should -Be 'Region,Units,Amount'
+        @($firstWorksheetImport.Rows).Count | Should -Be 2
+        $firstWorksheetImport.Rows[0].Region | Should -Be 'East'
+    }
+
+    It 'imports all worksheets as an ordered workbook with tab-completable sheet properties' {
+        $importExcelManifest = Get-Module -ListAvailable -Name ImportExcel |
+            Sort-Object Version -Descending |
+            Select-Object -First 1
+        if ($null -eq $importExcelManifest) {
+            Set-ItResult -Skipped -Because 'ImportExcel is not installed.'
+            return
+        }
+
+        Import-Module ImportExcel -Force
+        $path = Join-Path $TestDrive 'yearly-sales.xlsx'
+        @(
+            [pscustomobject][ordered]@{ Region = 'East'; Amount = 20.50 }
+            [pscustomobject][ordered]@{ Region = 'West'; Amount = 15.25 }
+        ) | Export-Excel -Path $path -WorksheetName January -AutoSize
+        @(
+            [pscustomobject][ordered]@{ Region = 'East'; Amount = 45.00 }
+            [pscustomobject][ordered]@{ Region = 'North'; Amount = 30.00 }
+        ) | Export-Excel -Path $path -WorksheetName February -AutoSize
+
+        $book = Import-PSDataFrame $path -AsWorkbook
+        $book.GetType().FullName | Should -Be 'PSPandas.Workbook'
+        @($book.Worksheets.Names) | Should -Be @('January', 'February')
+        $book.Worksheets.Count | Should -Be 2
+        $book.January.GetType().FullName | Should -Be 'PSPandas.DataFrame'
+        $book.Worksheets['February'].Rows[1].Region | Should -Be 'North'
+        $book['January'].Rows[0].Amount | Should -Be 20.50
+        @($book.Worksheets.Items).Count | Should -Be 2
+        $book.Worksheets.Items[0].Name | Should -Be 'January'
+        $book.Worksheets.Items[1].Count | Should -Be 2
+
+        $completionVariable = 'pspandasWorkbookForCompletion'
+        Set-Variable -Name $completionVariable -Value $book -Scope Global
+        try {
+            $completionInput = "`$$completionVariable."
+            $completion = [System.Management.Automation.CommandCompletion]::CompleteInput(
+                $completionInput,
+                $completionInput.Length,
+                $null)
+            @($completion.CompletionMatches.CompletionText) | Should -Contain 'January'
+            @($completion.CompletionMatches.CompletionText) | Should -Contain 'February'
+        } finally {
+            Remove-Variable -Name $completionVariable -Scope Global -ErrorAction SilentlyContinue
+        }
+    }
+
     It 'renders all profile rows in one structured table with typed bounds' {
         $rows = @(
             [pscustomobject][ordered]@{ Amount = [int32]10; OrderDate = [datetime]'2024-01-02'; Status = 'Open' }

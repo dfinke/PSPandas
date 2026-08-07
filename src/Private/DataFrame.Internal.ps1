@@ -89,6 +89,28 @@ function Import-PSPandasTypedFile {
     }
 }
 
+function Import-PSPandasExcelRows {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)]$Reader,
+        [AllowNull()][string]$WorksheetName
+    )
+
+    $readerParameters = @{ Path = $Path }
+    $worksheetDescription = 'first worksheet'
+    if (-not [string]::IsNullOrWhiteSpace($WorksheetName)) {
+        $readerParameters.WorksheetName = $WorksheetName
+        $worksheetDescription = "worksheet '$WorksheetName'"
+    }
+
+    try {
+        return @(& $Reader @readerParameters)
+    } catch {
+        throw "Excel reader Import-Excel failed for '$Path' $worksheetDescription`: $($_.Exception.Message)"
+    }
+}
+
 function New-PSPandasDataFrameObject {
     [CmdletBinding()]
     param(
@@ -152,6 +174,18 @@ function Assert-PSPandasDataFrame {
     if (-not (Test-PSPandasDataFrame -Value $DataFrame)) {
         throw "Parameter '$ParameterName' must be a PSPandas data frame. Create one with ConvertTo-PSDataFrame."
     }
+}
+
+function New-PSPandasWorkbookObject {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][object[]]$Worksheets
+    )
+
+    $names = [string[]]@($Worksheets | ForEach-Object { $_.Name })
+    $frames = [object[]]@($Worksheets | ForEach-Object { $_.DataFrame })
+    return [PSPandas.Workbook]::new($Path, $names, $frames)
 }
 
 function Assert-PSPandasColumns {
