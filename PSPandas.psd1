@@ -22,6 +22,7 @@
         'Add-PSDataFrameColumn',
         'Group-PSDataFrame',
         'Measure-PSDataFrame',
+        'ConvertTo-PSDataFrameWide',
         'Join-PSDataFrame'
     )
     AliasesToExport   = @(
@@ -35,6 +36,8 @@
         'Summarize-PSDF',
         'Summarize-PSDataFrame',
         'Summarize',
+        'Pivot',
+        'Pivot-PSDataFrame',
         'Describe',
         'Join-PSDF'
     )

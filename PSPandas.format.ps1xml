@@ -19,6 +19,253 @@ if ($rows.Count -eq 0) {
     $rows |
         Format-Table -Property Column, Type, RowCount, NullCount, DistinctCount, Minimum, Maximum, Average, Sum, SampleValues -AutoSize |
         Out-String -Width 300
+} elseif ($null -ne $_.PSObject.Properties['Metadata'] -and
+          $null -ne $_.Metadata.Pivot -and
+          $_.Metadata.Pivot.Layout -eq 'Outline') {
+    $pivot = $_.Metadata.Pivot
+    $indexColumns = @($pivot.Index)
+    $valueColumns = @($_.Columns | Where-Object { $_ -notin $indexColumns })
+    $hierarchyName = $indexColumns -join ' / '
+    while ($valueColumns -contains $hierarchyName) {
+        $hierarchyName += ' (index)'
+    }
+
+    $formatIndexValue = {
+        param($Value)
+        if ($null -eq $Value -or $Value -is [System.DBNull]) {
+            return '[null]'
+        }
+        if ($Value -is [datetime]) {
+            if ($Value.TimeOfDay -eq [timespan]::Zero) {
+                return $Value.ToString('yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
+            }
+            return $Value.ToString('yyyy-MM-dd HH:mm:ss', [Globalization.CultureInfo]::InvariantCulture)
+        }
+        if ($Value -is [datetimeoffset]) {
+            return $Value.ToString('yyyy-MM-dd HH:mm:ss zzz', [Globalization.CultureInfo]::InvariantCulture)
+        }
+        if ($Value.GetType().FullName -eq 'System.DateOnly') {
+            return $Value.ToString('yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
+        }
+        return [string]$Value
+    }
+
+    $getIndexValues = {
+        param($Row)
+        $indexValues = [object[]]::new($indexColumns.Count)
+        for ($level = 0; $level -lt $indexColumns.Count; $level++) {
+            $indexValues[$level] = $Row.PSObject.Properties[$indexColumns[$level]].Value
+        }
+        return $indexValues
+    }
+
+    $isMarginRow = {
+        param([object[]]$IndexValues)
+        $isMargin = $false
+        if ($pivot.Margins -and $indexColumns.Count -gt 0 -and
+            [string]$IndexValues[0] -eq [string]$pivot.MarginsName) {
+            $isMargin = $true
+            for ($level = 1; $level -lt $indexColumns.Count; $level++) {
+                if ($null -ne $IndexValues[$level]) {
+                    $isMargin = $false
+                    break
+                }
+            }
+        }
+        return $isMargin
+    }
+
+    $dataRows = [System.Collections.Generic.List[object]]::new()
+    $marginRows = [System.Collections.Generic.List[object]]::new()
+    foreach ($candidate in $rows) {
+        $candidateValues = [object[]]@(& $getIndexValues $candidate)
+        if (& $isMarginRow $candidateValues) {
+            [void]$marginRows.Add($candidate)
+        } else {
+            [void]$dataRows.Add($candidate)
+        }
+    }
+
+    $isLastSibling = {
+        param([int]$Position, [int]$Level, [object[]]$CurrentValues)
+        for ($lookAhead = $Position + 1; $lookAhead -lt $dataRows.Count; $lookAhead++) {
+            $futureValues = [object[]]@(& $getIndexValues $dataRows[$lookAhead])
+            $sameParent = $true
+            for ($ancestor = 0; $ancestor -lt $Level; $ancestor++) {
+                if (-not [object]::Equals($CurrentValues[$ancestor], $futureValues[$ancestor])) {
+                    $sameParent = $false
+                    break
+                }
+            }
+            if (-not $sameParent) {
+                break
+            }
+            if (-not [object]::Equals($CurrentValues[$Level], $futureValues[$Level])) {
+                return $false
+            }
+        }
+        return $true
+    }
+
+    $getTreeLabel = {
+        param([int]$Position, [int]$Level, [object[]]$IndexValues)
+        $label = & $formatIndexValue $IndexValues[$Level]
+        if ($Level -eq 0) {
+            return $label
+        }
+        $prefix = ''
+        for ($ancestor = 1; $ancestor -lt $Level; $ancestor++) {
+            if (& $isLastSibling $Position $ancestor $IndexValues) {
+                $prefix += '    '
+            } else {
+                $prefix += '│   '
+            }
+        }
+        if (& $isLastSibling $Position $Level $IndexValues) {
+            return $prefix + '└── ' + $label
+        }
+        return $prefix + '├── ' + $label
+    }
+
+    $reportRows = [System.Collections.Generic.List[object]]::new()
+    $previousValues = [object[]]::new($indexColumns.Count)
+    $hasPrevious = $false
+
+    for ($position = 0; $position -lt $dataRows.Count; $position++) {
+        $row = $dataRows[$position]
+        $indexValues = [object[]]@(& $getIndexValues $row)
+
+        $changedAt = 0
+        if ($hasPrevious) {
+            while ($changedAt -lt $indexColumns.Count -and
+                   [object]::Equals($previousValues[$changedAt], $indexValues[$changedAt])) {
+                $changedAt++
+            }
+        }
+
+        if ($hasPrevious -and $changedAt -eq 0) {
+            $spacer = [ordered]@{ $hierarchyName = ''; __OutlineKind = 'GroupSeparator' }
+            foreach ($column in $valueColumns) { $spacer[$column] = $null }
+            [void]$reportRows.Add([pscustomobject]$spacer)
+        }
+
+        for ($level = $changedAt; $level -lt ($indexColumns.Count - 1); $level++) {
+            $header = [ordered]@{
+                $hierarchyName = & $getTreeLabel $position $level $indexValues
+                __OutlineKind = if ($level -eq 0) { 'Group' } else { 'Branch' }
+            }
+            foreach ($column in $valueColumns) { $header[$column] = $null }
+            [void]$reportRows.Add([pscustomobject]$header)
+        }
+
+        $leaf = [ordered]@{
+            $hierarchyName = & $getTreeLabel $position ($indexColumns.Count - 1) $indexValues
+            __OutlineKind = 'Leaf'
+        }
+        foreach ($column in $valueColumns) {
+            $leaf[$column] = $row.PSObject.Properties[$column].Value
+        }
+        [void]$reportRows.Add([pscustomobject]$leaf)
+
+        for ($level = 0; $level -lt $indexColumns.Count; $level++) {
+            $previousValues[$level] = $indexValues[$level]
+        }
+        $hasPrevious = $true
+    }
+
+    foreach ($row in $marginRows) {
+        if ($reportRows.Count -gt 0) {
+            $spacer = [ordered]@{ $hierarchyName = ''; __OutlineKind = 'MarginSeparator' }
+            foreach ($column in $valueColumns) { $spacer[$column] = $null }
+            [void]$reportRows.Add([pscustomobject]$spacer)
+        }
+        $marginRow = [ordered]@{ $hierarchyName = [string]$pivot.MarginsName; __OutlineKind = 'Margin' }
+        foreach ($column in $valueColumns) {
+            $marginRow[$column] = $row.PSObject.Properties[$column].Value
+        }
+        [void]$reportRows.Add([pscustomobject]$marginRow)
+    }
+
+    $properties = [string[]]@($hierarchyName) + [string[]]$valueColumns
+    if (-not $pivot.Grid) {
+        $reportRows |
+            Format-Table -Property $properties -AutoSize |
+            Out-String -Width 240
+    } else {
+      $formatCellValue = {
+        param($Value)
+        if ($null -eq $Value -or $Value -is [System.DBNull]) {
+            return ''
+        }
+        if ($Value -is [string]) {
+            return ($Value -replace '[\r\n]+', ' ')
+        }
+        if ($Value -is [System.Collections.IEnumerable] -and $Value -isnot [System.Collections.IDictionary]) {
+            return ((@($Value) | ForEach-Object { [string]$_ }) -join ', ') -replace '[\r\n]+', ' '
+        }
+        return ([string]$Value) -replace '[\r\n]+', ' '
+    }
+
+    $widths = [int[]]::new($properties.Count)
+    for ($columnIndex = 0; $columnIndex -lt $properties.Count; $columnIndex++) {
+        $widths[$columnIndex] = $properties[$columnIndex].Length
+    }
+    $renderRows = [System.Collections.Generic.List[object]]::new()
+    foreach ($reportRow in $reportRows) {
+        $kind = [string]$reportRow.__OutlineKind
+        if ($kind -in @('GroupSeparator', 'MarginSeparator')) {
+            [void]$renderRows.Add([pscustomobject]@{ Kind = $kind; Cells = $null })
+            continue
+        }
+        $cells = [string[]]::new($properties.Count)
+        for ($columnIndex = 0; $columnIndex -lt $properties.Count; $columnIndex++) {
+            $cells[$columnIndex] = & $formatCellValue $reportRow.PSObject.Properties[$properties[$columnIndex]].Value
+            if ($cells[$columnIndex].Length -gt $widths[$columnIndex]) {
+                $widths[$columnIndex] = $cells[$columnIndex].Length
+            }
+        }
+        [void]$renderRows.Add([pscustomobject]@{ Kind = $kind; Cells = $cells })
+    }
+
+    $makeBorder = {
+        param([string]$Left, [string]$Join, [string]$Right, [string]$Horizontal)
+        $segments = for ($columnIndex = 0; $columnIndex -lt $widths.Count; $columnIndex++) {
+            $Horizontal * ($widths[$columnIndex] + 2)
+        }
+        return $Left + ($segments -join $Join) + $Right
+    }
+    $makeDataLine = {
+        param([string[]]$Cells)
+        $padded = for ($columnIndex = 0; $columnIndex -lt $Cells.Count; $columnIndex++) {
+            if ($columnIndex -eq 0) {
+                $Cells[$columnIndex].PadRight($widths[$columnIndex])
+            } else {
+                $Cells[$columnIndex].PadLeft($widths[$columnIndex])
+            }
+        }
+        return '│ ' + ($padded -join ' │ ') + ' │'
+    }
+
+    $outputLines = [System.Collections.Generic.List[string]]::new()
+    [void]$outputLines.Add((& $makeBorder '┌' '┬' '┐' '─'))
+    [void]$outputLines.Add((& $makeDataLine $properties))
+    [void]$outputLines.Add((& $makeBorder '├' '┼' '┤' '─'))
+    foreach ($renderRow in $renderRows) {
+        switch ($renderRow.Kind) {
+            'GroupSeparator' {
+                [void]$outputLines.Add((& $makeBorder '├' '┼' '┤' '─'))
+            }
+            'MarginSeparator' {
+                [void]$outputLines.Add((& $makeBorder '╞' '╪' '╡' '═'))
+            }
+            default {
+                [void]$outputLines.Add((& $makeDataLine $renderRow.Cells))
+            }
+        }
+    }
+    [void]$outputLines.Add((& $makeBorder '└' '┴' '┘' '─'))
+      ($outputLines -join [Environment]::NewLine) + [Environment]::NewLine
+    }
 } else {
     $rows | Format-Table -AutoSize | Out-String -Width 200
 }

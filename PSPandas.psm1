@@ -24,6 +24,7 @@ Export-ModuleMember -Function @(
     'Add-PSDataFrameColumn',
     'Group-PSDataFrame',
     'Measure-PSDataFrame',
+    'ConvertTo-PSDataFrameWide',
     'Join-PSDataFrame'
 ) -Alias @(
     'Where-PSDF',
@@ -36,6 +37,8 @@ Export-ModuleMember -Function @(
     'Summarize-PSDF',
     'Summarize-PSDataFrame',
     'Summarize',
+    'Pivot',
+    'Pivot-PSDataFrame',
     'Describe',
     'Join-PSDF'
 )

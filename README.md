@@ -121,6 +121,73 @@ $orders | Summarize -By State -Count OrderId, CustomerId -Sum Amount, Tax |
 
 The advanced `Measure-PSDataFrame -Aggregate` form remains available for custom output names and scriptblock aggregates. A friendly generated name that collides with an advanced aggregate name throws an error instead of overwriting a column. Run the complete concise-summary example with `& ./examples/Summarize.ps1`.
 
+## Pivot tables
+
+`ConvertTo-PSDataFrameWide` is the canonical wide-reshape command. Its concise `Pivot` and `Pivot-PSDataFrame` aliases provide a natural interactive surface while keeping module imports approved-verb and warning-free.
+
+```powershell
+$sales | Pivot -Index Region -Columns Channel -Values Revenue -Aggregate Sum
+
+# Index, Columns, and Values are positional; Sum is the default aggregate.
+$sales | Pivot Region Channel Revenue
+```
+
+`-Index`, `-Columns`, and `-Values` accept arrays. A string or string-array `-Aggregate` applies uniformly to every value column:
+
+```powershell
+$sales | Pivot `
+    -Index Region, State `
+    -Columns Year, Quarter `
+    -Values Revenue, Units `
+    -Aggregate Sum, Average `
+    -FillValue 0
+```
+
+Use an ordered aggregate dictionary to assign different functions to each value. The dictionary order controls metric order:
+
+```powershell
+$wide = $sales | Pivot `
+    -Index Region, State `
+    -Columns Year, Quarter `
+    -Aggregate ([ordered]@{
+        Revenue = 'Sum'
+        Units   = @('Sum', 'Average')
+        OrderId = 'Count'
+    }) `
+    -FillValue 0 `
+    -Margins
+```
+
+Advanced named specifications and scriptblocks use the same aggregate model as `Measure-PSDataFrame`:
+
+```powershell
+$sales | Pivot -Index Region -Columns Channel -Aggregate ([ordered]@{
+    TotalRevenue = @{ Property = 'Revenue'; Function = 'Sum' }
+    PeakRevenue  = @{ Property = 'Revenue'; Function = 'Max' }
+    SourceRows   = { param($rows) @($rows).Count }
+})
+```
+
+`Sum` is the default aggregate, making concise calls such as `Import-PSDataFrame .\orders.csv | Pivot category payment_status order_total` immediately useful. Use `-Unique` for pandas `pivot` semantics: every index/column combination must contain exactly one source row, and duplicates produce a clear error. `-Unique` cannot be combined with an explicitly supplied `-Aggregate` or with margins. Built-ins are Sum, Count, Average, Min, and Max.
+
+PSPandas uses ordered string column names rather than hierarchical columns. A single metric produces category names such as `Online` and `Store`; multiple metrics produce deterministic names such as `Sum_Revenue_2025_Q1` and `Average_Units_2025_Q1`. Name collisions fail clearly. First-seen row and category order is preserved by default; `-Sort` sorts both axes.
+
+`-FillValue` affects only combinations with no source rows, not existing groups whose aggregate result is null. `-Margins` recomputes each total from source rows, which keeps Average, Min, Max, and custom aggregates correct. The returned object remains a PSPandas DataFrame and retains a structured output mapping under `$wide.Metadata.Pivot` for the later long-form/melt implementation. Run the complete example with `& ./examples/Pivot.ps1`.
+
+For a terminal-friendly hierarchical report, add `-Outline` to a pivot with two or more index dimensions:
+
+```powershell
+Import-PSDataFrame .\data\orders.csv |
+    Pivot category, order_date payment_status `
+        -Aggregate @{ order_status = 'Count' } `
+        -FillValue 'n/a' `
+        -Margins `
+        -Outline `
+        -Grid
+```
+
+Outline display sorts the index hierarchy, prints each primary value once, and uses tree guides (`├──`, `└──`, and `│`) to make child and sibling relationships easy to scan. Add `-Grid` to enclose headings and values in a width-calculated grid, right-align metric cells, divide primary groups, and emphasize totals. Omit `-Grid` for the lighter native table presentation. DateOnly and DateTime labels use sortable ISO-style rendering. Both presentations are display only: `$wide.Rows`, `ConvertFrom-PSDataFrame`, exports, and downstream commands retain the original typed, repeated index properties.
+
 ## Data profiling
 
 `Import-PSDataFrame` is the file-oriented entry point. It uses PSFlatFile's typed reader for CSV, TSV, and other supported flat files. Import PSFlatFile first:
@@ -220,6 +287,7 @@ Run the complete examples from the project folder with:
 & ./examples/Joins.ps1
 & ./examples/Columns.ps1
 & ./examples/Summarize.ps1
+& ./examples/Pivot.ps1
 & ./examples/SalesReporting.ps1
 & ./examples/Profile.ps1
 & ./examples/RichProfile.ps1
@@ -239,13 +307,14 @@ Run the complete examples from the project folder with:
 - `Add-PSDataFrameColumn`: add a calculated column; the expression receives the current row through `$_` and its first argument.
 - `Group-PSDataFrame`: produce stable, first-seen groups with key, rows, count, and a group frame.
 - `Measure-PSDataFrame`: aggregate globally or by key. Aggregate specifications may be scriptblocks, property names (sum by default), or `@{ Property = 'Amount'; Function = 'Sum' }` hashtables. For non-count hashtable specifications that omit `Property`, the aggregate output name is used as the source property name. Built-ins include Count, Sum, Average, Min, and Max. `Summarize` is a concise alias for the friendly parameter surface, and `Summarize-PSDataFrame` remains as a compatibility alias.
+- `ConvertTo-PSDataFrameWide` / `Pivot`: reshape one or more column dimensions into ordered output columns. Supports multiple index dimensions, multiple values, uniform or per-value aggregates, advanced named/scriptblock aggregates, fill values, sorting, margins, uniqueness validation, structured pivot metadata, an optional hierarchical `-Outline` report view, and opt-in `-Grid` borders.
 - `Join-PSDataFrame`: inner, left, right, and full joins on one or more keys. Non-key collisions receive `_left` and `_right` suffixes by default.
 
 All transformations preserve input row order where ordering is meaningful. Empty frames retain an explicitly supplied schema; empty transformations return empty frames with their expected columns.
 
 ## First-release limitations and roadmap
 
-The first milestone deliberately leaves out pivot/reshape operations, a formal missing-value policy, automatic type coercion, and performance optimization for very large datasets. Those are follow-on work after the core object model and transformation semantics have more usage behind them. PSDolt-specific integration is also intentionally deferred: ordinary pipeline objects emitted by PSDolt can already be collected with `ConvertTo-PSDataFrame` when that integration is added later.
+The first milestone includes wide pivot tables but leaves long-form melt/reshape, a formal missing-value policy, automatic type coercion, and performance optimization for very large datasets as follow-on work. PSDolt-specific integration is also intentionally deferred: ordinary pipeline objects emitted by PSDolt can already be collected with `ConvertTo-PSDataFrame` when that integration is added later.
 
 ## Development
 
@@ -255,4 +324,4 @@ Run the test suite from the project folder:
 Invoke-Pester ./tests -Output Detailed
 ```
 
-The runnable examples are `examples/QuickStart.ps1`, `examples/Import.ps1`, `examples/ExcelImport.ps1`, `examples/Workbook.ps1`, `examples/Grouping.ps1`, `examples/Joins.ps1`, `examples/Columns.ps1`, `examples/Summarize.ps1`, `examples/SalesReporting.ps1`, `examples/Profile.ps1`, and `examples/RichProfile.ps1`.
+The runnable examples are `examples/QuickStart.ps1`, `examples/Import.ps1`, `examples/ExcelImport.ps1`, `examples/Workbook.ps1`, `examples/Grouping.ps1`, `examples/Joins.ps1`, `examples/Columns.ps1`, `examples/Summarize.ps1`, `examples/Pivot.ps1`, `examples/SalesReporting.ps1`, `examples/Profile.ps1`, and `examples/RichProfile.ps1`.

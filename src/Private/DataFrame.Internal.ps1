@@ -115,7 +115,8 @@ function New-PSPandasDataFrameObject {
     [CmdletBinding()]
     param(
         [AllowNull()][object[]]$Rows,
-        [AllowEmptyCollection()][string[]]$Columns
+        [AllowEmptyCollection()][string[]]$Columns,
+        [AllowNull()][System.Collections.IDictionary]$Metadata
     )
 
     $sourceRows = if ($null -eq $Rows) { @() } else { @($Rows) }
@@ -161,7 +162,15 @@ function New-PSPandasDataFrameObject {
         }
         [void]$columnObjects.Add([PSPandas.DataFrameColumn]::new($column, [object[]]$columnValues.ToArray()))
     }
-    return [PSPandas.DataFrame]::new([string[]]$resolvedColumns.ToArray(), $rowsValue, $columnObjects.ToArray())
+    $dataFrame = [PSPandas.DataFrame]::new([string[]]$resolvedColumns.ToArray(), $rowsValue, $columnObjects.ToArray())
+    if ($null -ne $Metadata) {
+        $metadataCopy = [ordered]@{}
+        foreach ($name in $Metadata.Keys) {
+            $metadataCopy[[string]$name] = $Metadata[$name]
+        }
+        $dataFrame | Add-Member -MemberType NoteProperty -Name Metadata -Value $metadataCopy
+    }
+    return $dataFrame
 }
 
 function Assert-PSPandasDataFrame {
@@ -302,24 +311,24 @@ function Invoke-PSPandasAggregate {
         $rowArray
     }
 
-    switch -Regex ($functionName.ToLowerInvariant()) {
-        '^count$|^rowcount$' { return $(if ($propertyName) { @($values).Count } else { $rowArray.Count }) }
-        '^sum$|^total$' {
+    $functionName = Resolve-PSPandasAggregateFunctionName -Name $functionName
+    switch ($functionName) {
+        'Count' { return $(if ($propertyName) { @($values).Count } else { $rowArray.Count }) }
+        'Sum' {
             if (@($values).Count -eq 0) { return 0 }
             return [double](@($values | Measure-Object -Sum).Sum)
         }
-        '^average$|^avg$|^mean$' {
+        'Average' {
             if (@($values).Count -eq 0) { return $null }
             return [double](@($values | Measure-Object -Average).Average)
         }
-        '^minimum$|^min$' {
+        'Min' {
             if (@($values).Count -eq 0) { return $null }
             return (@($values | Measure-Object -Minimum).Minimum)
         }
-        '^maximum$|^max$' {
+        'Max' {
             if (@($values).Count -eq 0) { return $null }
             return (@($values | Measure-Object -Maximum).Maximum)
         }
-        default { throw "Unsupported aggregate function '$functionName'." }
     }
 }
