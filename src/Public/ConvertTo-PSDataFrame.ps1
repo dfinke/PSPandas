@@ -9,6 +9,10 @@ function ConvertTo-PSDataFrame {
     A file path uses the typed Import-FlatFile reader from PSFlatFile; no
     untyped Import-Csv fallback is used.
 
+    .PARAMETER InputObject
+    Ordinary objects, dictionaries, or existing PSPandas DataFrames collected
+    from the pipeline into the new frame.
+
     .PARAMETER Path
     Path to a file read through the typed Import-FlatFile reader from PSFlatFile.
 
@@ -24,11 +28,18 @@ function ConvertTo-PSDataFrame {
     .PARAMETER NameMode
     Inferred property-name mode passed to Import-FlatFile.
 
+    .PARAMETER Columns
+    Optional ordered schema. It defines empty frames and normalizes input rows
+    to a stable set and order of properties.
+
     .EXAMPLE
     Import-Csv .\orders.csv | ConvertTo-PSDataFrame
 
     .EXAMPLE
     ConvertTo-PSDataFrame .\orders.csv
+
+    .OUTPUTS
+    PSPandas.DataFrame
     #>
     [CmdletBinding(DefaultParameterSetName = 'InputObject')]
     param(

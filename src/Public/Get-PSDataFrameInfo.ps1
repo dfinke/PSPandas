@@ -2,6 +2,15 @@ function Get-PSDataFrameInfo {
     <#
     .SYNOPSIS
     Returns basic schema and size information for a PSPandas data frame.
+
+    .PARAMETER DataFrame
+    PSPandas DataFrame to inspect. The command accepts pipeline input.
+
+    .EXAMPLE
+    $frame | Get-PSDataFrameInfo
+
+    .OUTPUTS
+    System.Management.Automation.PSCustomObject
     #>
     [CmdletBinding()]
     param([Parameter(Mandatory, ValueFromPipeline = $true)]$DataFrame)

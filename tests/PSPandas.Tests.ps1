@@ -1,3 +1,18 @@
+<#
+.SYNOPSIS
+Validates PSPandas construction, profiling, transformations, joins, and edges.
+
+.DESCRIPTION
+Runs the primary Pester coverage for the public DataFrame API, typed import,
+workbook access, display behavior, column objects, and compatibility aliases.
+#>
+
+$describeAlias = Get-Alias -Name Describe -ErrorAction SilentlyContinue
+if ($describeAlias -and $describeAlias.Source -eq 'PSPandas') {
+    # Pester's Describe DSL must win during discovery when PSPandas is already imported.
+    Remove-Item -Path Alias:Describe -Force
+}
+
 BeforeAll {
     $modulePath = Join-Path $PSScriptRoot '..\PSPandas.psd1'
     Import-Module $modulePath -Force

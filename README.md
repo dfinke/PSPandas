@@ -233,6 +233,26 @@ $book.Worksheets['December'] | Describe
 
 `$book.Worksheets.Names` preserves workbook order, and each worksheet remains an independent DataFrame. `-AsWorkbook` cannot be combined with `-WorksheetName` and is not valid for flat files.
 
+The included `examples/data/RetailWorkbook.xlsx` demonstrates two common workbook styles in one file:
+
+- `Sales` is a denormalized, standalone analysis table that can be profiled, summarized, or pivoted immediately.
+- `OrderLines` is the fact table; `Customers` and `Products` are one-row-per-key dimensions; `Returns` contains optional order-level records. Left joins reconstruct an analysis-ready frame without dropping unreturned orders.
+
+```powershell
+$book = Import-PSDataFrame ./examples/data/RetailWorkbook.xlsx -AsWorkbook
+
+# Standalone worksheet
+$book.Sales | Summarize -By Region -Sum Sales, Profit
+
+# Related worksheets joined as DataFrames
+$enriched = Join-PSDataFrame $book.OrderLines $book.Customers -On 'Customer ID' -JoinType Left
+$enriched = Join-PSDataFrame $enriched $book.Products -On 'Product ID' -JoinType Left
+$enriched = Join-PSDataFrame $enriched $book.Returns -On 'Order ID' -JoinType Left
+$enriched | Pivot -Index Region -Columns Category -Values Sales -Aggregate Sum
+```
+
+Run `& ./examples/WorkbookStandalone.ps1` for the standalone path and `& ./examples/WorkbookJoins.ps1` for the normalized join path. Both use the same deterministic workbook and produce matching sales totals.
+
 `Get-PSDataFrameProfile` is the canonical profiling command; `Describe` is its concise alias. Both commands can also take a file path directly and use the same typed reader:
 
 ```powershell
@@ -291,6 +311,8 @@ Run the complete examples from the project folder with:
 & ./examples/Import.ps1
 & ./examples/ExcelImport.ps1
 & ./examples/Workbook.ps1
+& ./examples/WorkbookStandalone.ps1
+& ./examples/WorkbookJoins.ps1
 & ./examples/Grouping.ps1
 & ./examples/Joins.ps1
 & ./examples/Columns.ps1
@@ -333,4 +355,4 @@ Run the test suite from the project folder:
 Invoke-Pester ./tests -Output Detailed
 ```
 
-The runnable examples are `examples/QuickStart.ps1`, `examples/Import.ps1`, `examples/ExcelImport.ps1`, `examples/Workbook.ps1`, `examples/Grouping.ps1`, `examples/Joins.ps1`, `examples/Columns.ps1`, `examples/Summarize.ps1`, `examples/Pivot.ps1`, `examples/SuperstorePivot.ps1`, `examples/SalesReporting.ps1`, `examples/Profile.ps1`, and `examples/RichProfile.ps1`.
+The runnable examples are `examples/QuickStart.ps1`, `examples/Import.ps1`, `examples/ExcelImport.ps1`, `examples/Workbook.ps1`, `examples/WorkbookStandalone.ps1`, `examples/WorkbookJoins.ps1`, `examples/Grouping.ps1`, `examples/Joins.ps1`, `examples/Columns.ps1`, `examples/Summarize.ps1`, `examples/Pivot.ps1`, `examples/SuperstorePivot.ps1`, `examples/SalesReporting.ps1`, `examples/Profile.ps1`, and `examples/RichProfile.ps1`.

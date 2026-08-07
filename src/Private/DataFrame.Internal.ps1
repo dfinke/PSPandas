@@ -1,4 +1,14 @@
 function Test-PSPandasDataFrame {
+    <#
+    .SYNOPSIS
+    Tests whether an object is a PSPandas DataFrame.
+
+    .PARAMETER Value
+    Object to examine. Null values return false.
+
+    .OUTPUTS
+    System.Boolean
+    #>
     [CmdletBinding()]
     param([AllowNull()][object]$Value)
 
@@ -6,6 +16,23 @@ function Test-PSPandasDataFrame {
 }
 
 function Get-PSPandasPropertyValue {
+    <#
+    .SYNOPSIS
+    Reads a named value from an object or dictionary.
+
+    .DESCRIPTION
+    Provides one null-safe property accessor for dictionaries and PowerShell
+    objects. Missing properties and null input produce null.
+
+    .PARAMETER InputObject
+    Object or dictionary from which to read the value.
+
+    .PARAMETER Name
+    Property or dictionary-key name to read.
+
+    .OUTPUTS
+    System.Object
+    #>
     [CmdletBinding()]
     param(
         [AllowNull()][object]$InputObject,
@@ -31,6 +58,16 @@ function Get-PSPandasPropertyValue {
 }
 
 function Get-PSPandasObjectColumns {
+    <#
+    .SYNOPSIS
+    Returns the ordered column names exposed by an input object.
+
+    .PARAMETER InputObject
+    Dictionary or PowerShell object whose keys or properties define columns.
+
+    .OUTPUTS
+    System.String
+    #>
     [CmdletBinding()]
     param([AllowNull()][object]$InputObject)
 
@@ -44,6 +81,19 @@ function Get-PSPandasObjectColumns {
 }
 
 function ConvertTo-PSPandasRow {
+    <#
+    .SYNOPSIS
+    Normalizes an input object into an ordered DataFrame row.
+
+    .PARAMETER InputObject
+    Source object. Missing values are represented by null.
+
+    .PARAMETER Columns
+    Ordered schema used to select and arrange row properties.
+
+    .OUTPUTS
+    System.Management.Automation.PSCustomObject
+    #>
     [CmdletBinding()]
     param(
         [AllowNull()][object]$InputObject,
@@ -58,6 +108,32 @@ function ConvertTo-PSPandasRow {
 }
 
 function Import-PSPandasTypedFile {
+    <#
+    .SYNOPSIS
+    Reads a flat file through PSFlatFile's typed reader.
+
+    .DESCRIPTION
+    Resolves Import-FlatFile, forwards inference options, and wraps reader
+    failures with PSPandas path context. No untyped CSV fallback is used.
+
+    .PARAMETER Path
+    Existing flat-file path to read.
+
+    .PARAMETER Schema
+    Optional schema forwarded to Import-FlatFile.
+
+    .PARAMETER SampleSize
+    Maximum number of nonempty lines used for type inference.
+
+    .PARAMETER HeaderMode
+    Header-detection mode forwarded to Import-FlatFile.
+
+    .PARAMETER NameMode
+    Property-naming mode forwarded to Import-FlatFile.
+
+    .OUTPUTS
+    System.Object
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][ValidateScript({ Test-Path -LiteralPath $_ -PathType Leaf })][string]$Path,
@@ -90,6 +166,23 @@ function Import-PSPandasTypedFile {
 }
 
 function Import-PSPandasExcelRows {
+    <#
+    .SYNOPSIS
+    Reads one Excel worksheet through an ImportExcel command reference.
+
+    .PARAMETER Path
+    Workbook path passed to Import-Excel.
+
+    .PARAMETER Reader
+    Resolved Import-Excel command to invoke.
+
+    .PARAMETER WorksheetName
+    Optional worksheet name. When omitted, the reader's first-sheet behavior
+    is preserved.
+
+    .OUTPUTS
+    System.Object
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$Path,
@@ -112,6 +205,27 @@ function Import-PSPandasExcelRows {
 }
 
 function New-PSPandasDataFrameObject {
+    <#
+    .SYNOPSIS
+    Creates a normalized PSPandas DataFrame object.
+
+    .DESCRIPTION
+    Resolves an ordered schema, normalizes every row to that schema, creates
+    indexed column objects, and copies optional transformation metadata.
+
+    .PARAMETER Rows
+    Source rows. Null is treated as an empty row collection.
+
+    .PARAMETER Columns
+    Optional ordered schema. When empty, columns are discovered in first-seen
+    order across source rows.
+
+    .PARAMETER Metadata
+    Optional ordered metadata copied onto the resulting DataFrame.
+
+    .OUTPUTS
+    PSPandas.DataFrame
+    #>
     [CmdletBinding()]
     param(
         [AllowNull()][object[]]$Rows,
@@ -174,6 +288,16 @@ function New-PSPandasDataFrameObject {
 }
 
 function Assert-PSPandasDataFrame {
+    <#
+    .SYNOPSIS
+    Validates that a value is a PSPandas DataFrame.
+
+    .PARAMETER DataFrame
+    Value to validate.
+
+    .PARAMETER ParameterName
+    Parameter name included in the validation error.
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][AllowNull()][object]$DataFrame,
@@ -186,6 +310,19 @@ function Assert-PSPandasDataFrame {
 }
 
 function New-PSPandasWorkbookObject {
+    <#
+    .SYNOPSIS
+    Creates a tab-completable PSPandas workbook wrapper.
+
+    .PARAMETER Path
+    Source workbook path recorded on the wrapper.
+
+    .PARAMETER Worksheets
+    Ordered objects containing Name and DataFrame properties.
+
+    .OUTPUTS
+    PSPandas.Workbook
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$Path,
@@ -198,6 +335,16 @@ function New-PSPandasWorkbookObject {
 }
 
 function Assert-PSPandasColumns {
+    <#
+    .SYNOPSIS
+    Validates that requested columns exist in a DataFrame.
+
+    .PARAMETER DataFrame
+    PSPandas DataFrame whose schema is checked.
+
+    .PARAMETER Columns
+    Column names that must exist.
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]$DataFrame,
@@ -212,6 +359,20 @@ function Assert-PSPandasColumns {
 }
 
 function Get-PSPandasGroupKey {
+    <#
+    .SYNOPSIS
+    Produces a stable internal key for grouped values.
+
+    .DESCRIPTION
+    Encodes value type, text length, and text representation so values with
+    similar display text but different types remain distinct.
+
+    .PARAMETER Values
+    Ordered values that make up the group key.
+
+    .OUTPUTS
+    System.String
+    #>
     [CmdletBinding()]
     param([AllowNull()][object[]]$Values)
 
@@ -227,6 +388,20 @@ function Get-PSPandasGroupKey {
 }
 
 function Get-PSPandasGroupKeyObject {
+    <#
+    .SYNOPSIS
+    Creates the public key value returned for a group.
+
+    .PARAMETER Row
+    Representative row from the group.
+
+    .PARAMETER By
+    Ordered grouping columns. One column returns a scalar; multiple columns
+    return an ordered object.
+
+    .OUTPUTS
+    System.Object
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]$Row,
@@ -244,6 +419,20 @@ function Get-PSPandasGroupKeyObject {
 }
 
 function Get-PSPandasAggregatePropertyName {
+    <#
+    .SYNOPSIS
+    Resolves the source property used by an aggregate specification.
+
+    .PARAMETER OutputName
+    Aggregate output name, also used as the inferred source property when a
+    non-count dictionary specification omits Property.
+
+    .PARAMETER Specification
+    Scriptblock, property-name string, or Property/Function dictionary.
+
+    .OUTPUTS
+    System.String
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$OutputName,
@@ -276,6 +465,26 @@ function Get-PSPandasAggregatePropertyName {
 }
 
 function Invoke-PSPandasAggregate {
+    <#
+    .SYNOPSIS
+    Evaluates one aggregate specification against a row collection.
+
+    .DESCRIPTION
+    Supports custom scriptblocks and the Count, Sum, Average, Min, and Max
+    built-ins while preserving the module's empty-input semantics.
+
+    .PARAMETER Rows
+    Rows in the current group.
+
+    .PARAMETER Specification
+    Aggregate scriptblock, property-name string, or dictionary specification.
+
+    .PARAMETER OutputName
+    Name of the output column being calculated.
+
+    .OUTPUTS
+    System.Object
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][object[]]$Rows,

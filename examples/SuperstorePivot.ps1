@@ -1,3 +1,15 @@
+<#
+.SYNOPSIS
+Demonstrates pivot analysis against the retail-orders fixture.
+
+.DESCRIPTION
+Profiles the fixture and produces several hierarchical sales and profit pivot
+reports with margins and optional grids.
+
+.EXAMPLE
+& ./examples/SuperstorePivot.ps1
+#>
+
 Import-Module (Join-Path $PSScriptRoot '..\PSPandas.psd1') -Force
 
 $readerManifest = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) 'PSFlatFile\PSFlatFile.psd1'

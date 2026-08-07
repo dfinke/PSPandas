@@ -1,3 +1,14 @@
+<#
+.SYNOPSIS
+Demonstrates importing a single Excel worksheet as a DataFrame.
+
+.DESCRIPTION
+Uses ImportExcel with PSPandas file import and shows the resulting typed frame.
+
+.EXAMPLE
+& ./examples/ExcelImport.ps1
+#>
+
 Import-Module ImportExcel -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot '..\PSPandas.psd1') -Force
 

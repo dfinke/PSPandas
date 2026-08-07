@@ -1,3 +1,13 @@
+<#
+.SYNOPSIS
+Loads the PSPandas module implementation and exports its public command surface.
+
+.DESCRIPTION
+Loads private types and helpers before public commands, then exports only the
+canonical functions and documented convenience or compatibility aliases listed
+by the module manifest.
+#>
+
 Set-StrictMode -Version Latest
 
 $privateFiles = Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'src\Private') -Filter '*.ps1' -File | Sort-Object Name

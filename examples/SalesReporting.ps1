@@ -1,3 +1,15 @@
+<#
+.SYNOPSIS
+Demonstrates a practical sales-reporting workflow.
+
+.DESCRIPTION
+Uses mock orders to show column totals, grouped summaries, sorting, calculated
+year values, and trend-style aggregation.
+
+.EXAMPLE
+& ./examples/SalesReporting.ps1
+#>
+
 Import-Module (Join-Path $PSScriptRoot '..\PSPandas.psd1') -Force
 
 $orders = @(

@@ -1,23 +1,34 @@
+<#
+.SYNOPSIS
+Demonstrates importing and navigating a multi-sheet workbook.
+
+.DESCRIPTION
+Loads the checked-in retail workbook, lists its ordered worksheets, accesses a
+sheet through a tab-completable property, and profiles another by index.
+
+.EXAMPLE
+& ./examples/Workbook.ps1
+#>
+
 Import-Module ImportExcel -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot '..\PSPandas.psd1') -Force
 
-$path = Join-Path ([System.IO.Path]::GetTempPath()) "pspandas-workbook-example-$PID.xlsx"
-try {
-    @(
-        [pscustomobject][ordered]@{ Region = 'East'; Amount = 20.50 }
-        [pscustomobject][ordered]@{ Region = 'West'; Amount = 15.25 }
-    ) | Export-Excel -Path $path -WorksheetName January -AutoSize
+$path = Join-Path $PSScriptRoot 'data\RetailWorkbook.xlsx'
+$book = Import-PSDataFrame $path -AsWorkbook
 
-    @(
-        [pscustomobject][ordered]@{ Region = 'East'; Amount = 45.00 }
-        [pscustomobject][ordered]@{ Region = 'North'; Amount = 30.00 }
-    ) | Export-Excel -Path $path -WorksheetName February -AutoSize
+'Workbook overview:'
+$book
 
-    $book = Import-PSDataFrame $path -AsWorkbook
-    $book
-    $book.Worksheets.Names
-    $book.January | Summarize -By Region -Sum Amount | ConvertFrom-PSDataFrame | Format-Table
-    $book.Worksheets['February'] | Describe -AsRows | Format-Table Column, Type, RowCount, Minimum, Maximum
-} finally {
-    Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
-}
+'Worksheets in workbook order:'
+$book.Worksheets.Names
+
+'Summarize the standalone Sales worksheet through its tab-completable property:'
+$book.Sales |
+    Summarize -By Region -Sum Sales, Profit |
+    ConvertFrom-PSDataFrame |
+    Format-Table
+
+'Profile another worksheet through the indexed collection:'
+$book.Worksheets['Returns'] |
+    Describe -AsRows |
+    Format-Table Column, Type, RowCount, NullCount, DistinctCount

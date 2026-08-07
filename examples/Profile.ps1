@@ -1,3 +1,15 @@
+<#
+.SYNOPSIS
+Demonstrates DataFrame profiling and row-oriented profile output.
+
+.DESCRIPTION
+Profiles representative numeric, date, text, and nullable columns through
+Describe and Describe -AsRows.
+
+.EXAMPLE
+& ./examples/Profile.ps1
+#>
+
 Import-Module (Join-Path $PSScriptRoot '..\PSPandas.psd1') -Force
 
 $orders = @(

@@ -49,6 +49,9 @@ function Import-PSDataFrame {
     $book = Import-PSDataFrame .\yearlySales.xlsx -AsWorkbook
     # Press Ctrl+Space after '$book.' to complete worksheet names.
     $book.January | Summarize -By Region -Sum Amount
+
+    .OUTPUTS
+    PSPandas.DataFrame or PSPandas.Workbook when AsWorkbook is used.
     #>
     [CmdletBinding()]
     param(

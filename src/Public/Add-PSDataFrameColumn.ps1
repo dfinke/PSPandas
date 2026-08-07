@@ -6,8 +6,24 @@ function Add-PSDataFrameColumn {
     .DESCRIPTION
     The scriptblock receives each row through $_ and as its first argument.
 
+    .PARAMETER DataFrame
+    PSPandas DataFrame to transform. The command accepts pipeline input.
+
+    .PARAMETER Name
+    Name of the calculated column. New columns are appended to the schema.
+
+    .PARAMETER Expression
+    Scriptblock evaluated once for each row.
+
+    .PARAMETER Force
+    Replaces an existing column with the same name and moves it to the end of
+    the schema.
+
     .EXAMPLE
     $frame | Add-PSDataFrameColumn -Name Total -Expression { $_.Price * $_.Quantity }
+
+    .OUTPUTS
+    PSPandas.DataFrame
     #>
     [CmdletBinding()]
     param(

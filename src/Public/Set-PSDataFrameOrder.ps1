@@ -2,6 +2,21 @@ function Set-PSDataFrameOrder {
     <#
     .SYNOPSIS
     Sorts rows by one or more existing columns.
+
+    .PARAMETER DataFrame
+    PSPandas DataFrame to sort. The command accepts pipeline input.
+
+    .PARAMETER Property
+    One or more sort columns, evaluated in the supplied order.
+
+    .PARAMETER Descending
+    Sorts all requested properties in descending order.
+
+    .EXAMPLE
+    $frame | Set-PSDataFrameOrder -Property Region, Amount -Descending
+
+    .OUTPUTS
+    PSPandas.DataFrame
     #>
     [CmdletBinding()]
     param(

@@ -15,6 +15,35 @@ function Measure-PSDataFrame {
     Sum_Amount. The advanced -Aggregate form remains available for custom names
     and scriptblocks.
 
+    .PARAMETER DataFrame
+    PSPandas DataFrame to aggregate. The command accepts pipeline input.
+
+    .PARAMETER By
+    Optional grouping columns. Omit for a single global summary row.
+
+    .PARAMETER Aggregate
+    Ordered dictionary of advanced output names and aggregate specifications.
+    These specifications can be combined with the friendly aggregate
+    parameters when output names do not collide.
+
+    .PARAMETER Count
+    One or more properties to count. Outputs are named Count_Property.
+
+    .PARAMETER Sum
+    One or more numeric properties to sum. Outputs are named Sum_Property.
+
+    .PARAMETER Average
+    One or more numeric properties to average. Outputs are named
+    Average_Property.
+
+    .PARAMETER Min
+    One or more properties whose minimum values are returned. Outputs are
+    named Min_Property.
+
+    .PARAMETER Max
+    One or more properties whose maximum values are returned. Outputs are
+    named Max_Property.
+
     .EXAMPLE
     $sales | Measure-PSDataFrame -By Region -Aggregate @{
         Orders = @{ Function = 'Count' }
@@ -23,6 +52,9 @@ function Measure-PSDataFrame {
 
     .EXAMPLE
     $orders | Summarize -By State -Count OrderId -Sum Amount, Tax
+
+    .OUTPUTS
+    PSPandas.DataFrame
     #>
     [CmdletBinding()]
     param(

@@ -1,3 +1,15 @@
+<#
+.SYNOPSIS
+Introduces the core PSPandas DataFrame workflow.
+
+.DESCRIPTION
+Constructs a frame and demonstrates inspection, filtering, calculated columns,
+selection, grouping, aggregation, and pipeline composition.
+
+.EXAMPLE
+& ./examples/QuickStart.ps1
+#>
+
 Import-Module (Join-Path $PSScriptRoot '..\PSPandas.psd1') -Force
 
 $sales = @(

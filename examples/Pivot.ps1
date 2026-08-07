@@ -1,3 +1,15 @@
+<#
+.SYNOPSIS
+Demonstrates PSPandas wide pivot capabilities.
+
+.DESCRIPTION
+Shows positional pivot syntax, multiple dimensions and metrics, per-value
+aggregates, margins, outline display, and structured pivot metadata.
+
+.EXAMPLE
+& ./examples/Pivot.ps1
+#>
+
 Import-Module (Join-Path $PSScriptRoot '..\PSPandas.psd1') -Force
 
 $sales = @(

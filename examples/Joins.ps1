@@ -1,3 +1,15 @@
+<#
+.SYNOPSIS
+Demonstrates joining two DataFrames on a shared key.
+
+.DESCRIPTION
+Builds orders and customers frames and performs a left join that retains an
+unmatched order.
+
+.EXAMPLE
+& ./examples/Joins.ps1
+#>
+
 Import-Module (Join-Path $PSScriptRoot '..\PSPandas.psd1') -Force
 
 $orders = @(

@@ -41,6 +41,9 @@ function Join-PSDataFrame {
     .EXAMPLE
     Join-PSDataFrame -Left $orders -Right $customers -On CustomerId |
         ConvertFrom-PSDataFrame | Format-Table
+
+    .OUTPUTS
+    PSPandas.DataFrame
     #>
     [CmdletBinding()]
     param(

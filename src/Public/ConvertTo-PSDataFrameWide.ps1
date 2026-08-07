@@ -16,6 +16,9 @@ function ConvertTo-PSDataFrameWide {
     dimensions are flattened into deterministic string column names while
     structured mappings are retained in the result's Metadata.Pivot property.
 
+    .PARAMETER DataFrame
+    PSPandas DataFrame to reshape. The command accepts pipeline input.
+
     .PARAMETER Index
     Zero or more columns that identify output rows. Multiple columns form a
     composite row key in the order supplied.
@@ -65,6 +68,14 @@ function ConvertTo-PSDataFrameWide {
     .PARAMETER Grid
     Encloses an outline report in a width-calculated grid, right-aligns metric
     values, separates primary groups, and emphasizes margins. Requires -Outline.
+
+    .PARAMETER NameSeparator
+    Separator used when flattening multiple dimensions and metric names into
+    output column names. Defaults to an underscore.
+
+    .PARAMETER NullColumnName
+    Label used when a pivot column dimension contains null or DBNull. Defaults
+    to [null].
 
     .EXAMPLE
     $sales | Pivot -Index Region -Columns Quarter -Values Revenue -Aggregate Sum

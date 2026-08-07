@@ -3,8 +3,17 @@ function Select-PSDataFrame {
     .SYNOPSIS
     Selects and reorders columns while preserving row order.
 
+    .PARAMETER DataFrame
+    PSPandas DataFrame to project. The command accepts pipeline input.
+
+    .PARAMETER Property
+    Existing columns to retain, in the desired output order.
+
     .EXAMPLE
     $frame | Select-PSDataFrame -Property Name, Amount
+
+    .OUTPUTS
+    PSPandas.DataFrame
     #>
     [CmdletBinding()]
     param(

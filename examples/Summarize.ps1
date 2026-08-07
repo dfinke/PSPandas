@@ -1,3 +1,15 @@
+<#
+.SYNOPSIS
+Demonstrates concise and advanced DataFrame summaries.
+
+.DESCRIPTION
+Shows ungrouped and grouped friendly aggregate parameters, arrays of property
+names, and custom advanced aggregate specifications.
+
+.EXAMPLE
+& ./examples/Summarize.ps1
+#>
+
 Import-Module (Join-Path $PSScriptRoot '..\PSPandas.psd1') -Force
 
 $orders = @(

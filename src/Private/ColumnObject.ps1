@@ -1,3 +1,17 @@
+<#
+.SYNOPSIS
+Defines the .NET types used by PSPandas DataFrames and workbook wrappers.
+
+.DESCRIPTION
+Compiles the DataFrame, DataFrameColumn, Workbook, WorksheetCollection, and
+WorksheetInfo types once per PowerShell process. These types provide indexed
+column operations, stable row storage, dynamic worksheet properties, and
+tab-completable workbook access used by the public module commands.
+
+.NOTES
+This implementation file is loaded before the function-based module helpers.
+#>
+
 if (-not ([System.Management.Automation.PSTypeName]'PSPandas.DataFrame').Type) {
     Add-Type -TypeDefinition @'
 using System;

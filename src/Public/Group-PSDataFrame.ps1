@@ -3,8 +3,22 @@ function Group-PSDataFrame {
     .SYNOPSIS
     Groups rows by one or more columns.
 
+    .DESCRIPTION
+    Preserves first-seen group order. Each emitted group includes the public
+    key, ordinary rows, row count, and a DataFrame containing the group rows.
+
+    .PARAMETER DataFrame
+    PSPandas DataFrame to group. The command accepts pipeline input.
+
+    .PARAMETER By
+    One or more existing columns that form the group key.
+
+    .EXAMPLE
+    $frame | Group-PSDataFrame -By Region, State
+
     .OUTPUTS
-    Each output object has Key, Rows, Count, and DataFrame properties.
+    System.Management.Automation.PSCustomObject. Each output object has Key,
+    Rows, Count, and DataFrame properties.
     #>
     [CmdletBinding()]
     param(

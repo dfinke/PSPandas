@@ -1,3 +1,14 @@
+<#
+.SYNOPSIS
+Demonstrates typed flat-file import into a PSPandas DataFrame.
+
+.DESCRIPTION
+Loads PSFlatFile and PSPandas, imports a local fixture, and inspects the frame.
+
+.EXAMPLE
+& ./examples/Import.ps1
+#>
+
 Import-Module (Join-Path $PSScriptRoot '..\PSPandas.psd1') -Force
 
 $readerManifest = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) 'PSFlatFile\PSFlatFile.psd1'

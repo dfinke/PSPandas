@@ -11,6 +11,9 @@ function Get-PSDataFrameProfile {
     profileable without throwing. A file path uses the typed Import-FlatFile
     reader from PSFlatFile; no untyped Import-Csv fallback is used.
 
+    .PARAMETER DataFrame
+    PSPandas DataFrame received from the pipeline and profiled in memory.
+
     .PARAMETER SampleCount
     Maximum number of non-null sample values retained per column.
 
@@ -40,6 +43,10 @@ function Get-PSDataFrameProfile {
 
     .EXAMPLE
     Describe .\orders.csv
+
+    .OUTPUTS
+    PSPandas.DataFrame by default. With AsRows, emits ordinary PowerShell
+    profile-row objects.
     #>
     [CmdletBinding(DefaultParameterSetName = 'Path')]
     param(
@@ -214,6 +221,16 @@ function Get-PSDataFrameProfile {
 }
 
 function Test-PSDataFrameProfileNumericType {
+    <#
+    .SYNOPSIS
+    Tests whether a .NET type is supported as a numeric profile value.
+
+    .PARAMETER Type
+    Runtime type to classify.
+
+    .OUTPUTS
+    System.Boolean
+    #>
     [CmdletBinding()]
     param([Parameter(Mandatory)][type]$Type)
 
@@ -224,6 +241,16 @@ function Test-PSDataFrameProfileNumericType {
 }
 
 function Test-PSDataFrameProfileDateType {
+    <#
+    .SYNOPSIS
+    Tests whether a .NET type is supported as a date-like profile value.
+
+    .PARAMETER Type
+    Runtime type to classify.
+
+    .OUTPUTS
+    System.Boolean
+    #>
     [CmdletBinding()]
     param([Parameter(Mandatory)][type]$Type)
 
@@ -231,6 +258,16 @@ function Test-PSDataFrameProfileDateType {
 }
 
 function ConvertTo-PSDataFrameProfileDateComparable {
+    <#
+    .SYNOPSIS
+    Converts a supported date-like value into a comparable representation.
+
+    .PARAMETER Value
+    DateTime, DateTimeOffset, or DateOnly value to normalize for comparison.
+
+    .OUTPUTS
+    System.DateTimeOffset
+    #>
     [CmdletBinding()]
     param([Parameter(Mandatory)][object]$Value)
 

@@ -1,4 +1,14 @@
 function Resolve-PSPandasAggregateFunctionName {
+    <#
+    .SYNOPSIS
+    Normalizes an aggregate function name to its canonical PSPandas name.
+
+    .PARAMETER Name
+    Aggregate name or supported synonym to normalize.
+
+    .OUTPUTS
+    System.String
+    #>
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$Name)
 
@@ -13,6 +23,20 @@ function Resolve-PSPandasAggregateFunctionName {
 }
 
 function ConvertTo-PSPandasStableKey {
+    <#
+    .SYNOPSIS
+    Serializes ordered values into a type-safe pivot key.
+
+    .DESCRIPTION
+    Uses type information and PowerShell serialization so null, DBNull, typed
+    values, and values with identical display text remain distinguishable.
+
+    .PARAMETER Values
+    Ordered values that form a pivot row or column key.
+
+    .OUTPUTS
+    System.String
+    #>
     [CmdletBinding()]
     param([AllowNull()][object[]]$Values)
 
@@ -36,6 +60,19 @@ function ConvertTo-PSPandasStableKey {
 }
 
 function ConvertTo-PSPandasPivotValueLabel {
+    <#
+    .SYNOPSIS
+    Converts one pivot dimension value into a deterministic display label.
+
+    .PARAMETER Value
+    Dimension value to render, including null and date-like values.
+
+    .PARAMETER NullColumnName
+    Label used for null or DBNull values.
+
+    .OUTPUTS
+    System.String
+    #>
     [CmdletBinding()]
     param(
         [AllowNull()]$Value,
@@ -67,6 +104,22 @@ function ConvertTo-PSPandasPivotValueLabel {
 }
 
 function ConvertTo-PSPandasPivotTupleLabel {
+    <#
+    .SYNOPSIS
+    Joins a composite pivot dimension into one deterministic label.
+
+    .PARAMETER Values
+    Ordered dimension values to label.
+
+    .PARAMETER Separator
+    Text inserted between dimension labels.
+
+    .PARAMETER NullColumnName
+    Label used for null or DBNull values.
+
+    .OUTPUTS
+    System.String
+    #>
     [CmdletBinding()]
     param(
         [AllowNull()][object[]]$Values,
@@ -82,6 +135,19 @@ function ConvertTo-PSPandasPivotTupleLabel {
 }
 
 function Get-PSPandasPivotSpecificationProperty {
+    <#
+    .SYNOPSIS
+    Resolves the source property for a pivot metric specification.
+
+    .PARAMETER OutputName
+    Name assigned to the output metric.
+
+    .PARAMETER Specification
+    Aggregate specification used by the metric.
+
+    .OUTPUTS
+    System.String
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$OutputName,
@@ -95,6 +161,30 @@ function Get-PSPandasPivotSpecificationProperty {
 }
 
 function Resolve-PSPandasPivotMetrics {
+    <#
+    .SYNOPSIS
+    Expands pivot value and aggregate arguments into metric definitions.
+
+    .DESCRIPTION
+    Handles identity pivots, uniform aggregate functions, per-value aggregate
+    dictionaries, and advanced named specifications while validating source
+    columns and generated metric names.
+
+    .PARAMETER DataFrame
+    Source PSPandas DataFrame.
+
+    .PARAMETER Values
+    Value columns supplied to the pivot command.
+
+    .PARAMETER Aggregate
+    Uniform aggregate value or ordered aggregate dictionary.
+
+    .PARAMETER AggregateWasSpecified
+    Indicates that aggregation is enabled rather than uniqueness enforcement.
+
+    .OUTPUTS
+    System.Management.Automation.PSCustomObject
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]$DataFrame,
@@ -232,6 +322,19 @@ function Resolve-PSPandasPivotMetrics {
 }
 
 function Get-PSPandasPivotCellValue {
+    <#
+    .SYNOPSIS
+    Calculates the value for one pivot cell.
+
+    .PARAMETER Rows
+    Source rows belonging to the pivot cell.
+
+    .PARAMETER Metric
+    Resolved metric definition describing identity or aggregate behavior.
+
+    .OUTPUTS
+    System.Object
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][object[]]$Rows,

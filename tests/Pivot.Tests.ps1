@@ -1,3 +1,18 @@
+<#
+.SYNOPSIS
+Validates PSPandas wide pivot behavior and display options.
+
+.DESCRIPTION
+Runs Pester coverage for pivot command discovery, dimensions, aggregate forms,
+ordering, margins, metadata, outline reports, grids, and validation failures.
+#>
+
+$describeAlias = Get-Alias -Name Describe -ErrorAction SilentlyContinue
+if ($describeAlias -and $describeAlias.Source -eq 'PSPandas') {
+    # Pester's Describe DSL must win during discovery when PSPandas is already imported.
+    Remove-Item -Path Alias:Describe -Force
+}
+
 BeforeAll {
     $modulePath = Join-Path $PSScriptRoot '..\PSPandas.psd1'
     Import-Module $modulePath -Force

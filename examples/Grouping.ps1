@@ -1,3 +1,14 @@
+<#
+.SYNOPSIS
+Demonstrates grouping and grouped aggregation.
+
+.DESCRIPTION
+Shows the objects returned by Group-PSDataFrame and a natural follow-up summary.
+
+.EXAMPLE
+& ./examples/Grouping.ps1
+#>
+
 Import-Module (Join-Path $PSScriptRoot '..\PSPandas.psd1') -Force
 
 $sales = @(

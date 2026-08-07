@@ -1,3 +1,15 @@
+<#
+.SYNOPSIS
+Demonstrates indexed DataFrame column operations.
+
+.DESCRIPTION
+Builds a frame and uses the column object Values, Sum, Average, Min, Max, and
+Count members without unwrapping the DataFrame.
+
+.EXAMPLE
+& ./examples/Columns.ps1
+#>
+
 Import-Module (Join-Path $PSScriptRoot '..\PSPandas.psd1') -Force
 
 $orders = @(

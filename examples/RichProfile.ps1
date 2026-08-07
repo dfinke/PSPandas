@@ -1,3 +1,15 @@
+<#
+.SYNOPSIS
+Demonstrates profiling a deterministic mixed-type dataset.
+
+.DESCRIPTION
+Creates 100 realistic records containing numeric, date, text, Boolean, null,
+and mixed-quality values, then displays a structured profile.
+
+.EXAMPLE
+& ./examples/RichProfile.ps1
+#>
+
 Import-Module (Join-Path $PSScriptRoot '..\PSPandas.psd1') -Force
 
 $states = @('CA', 'NY', 'TX', 'WA')

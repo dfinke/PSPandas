@@ -3,8 +3,21 @@ function Find-PSDataFrame {
     .SYNOPSIS
     Filters rows using a PowerShell Where-Object-style scriptblock.
 
+    .DESCRIPTION
+    Evaluates the filter against each row and returns a new DataFrame with the
+    original ordered schema, including when no rows match.
+
+    .PARAMETER DataFrame
+    PSPandas DataFrame to filter. The command accepts pipeline input.
+
+    .PARAMETER FilterScript
+    Predicate evaluated with each row available as $_.
+
     .EXAMPLE
     $frame | Find-PSDataFrame { $_.Amount -gt 100 }
+
+    .OUTPUTS
+    PSPandas.DataFrame
     #>
     [CmdletBinding()]
     param(
