@@ -60,6 +60,7 @@ Describe 'PSPandas construction and inspection' {
     It 'exports the approved command names and compatibility aliases' {
         @(Get-Command New-PSDataFrame -Module PSPandas -ErrorAction SilentlyContinue).Count | Should -Be 0
         (Get-Command ConvertTo-PSDataFrame -Module PSPandas).CommandType | Should -Be 'Function'
+        (Get-Command Import-PSDataFrame -Module PSPandas).CommandType | Should -Be 'Function'
         (Get-Command Find-PSDataFrame).CommandType | Should -Be 'Function'
         (Get-Command Set-PSDataFrameOrder).CommandType | Should -Be 'Function'
         (Get-Command Measure-PSDataFrame).CommandType | Should -Be 'Function'
@@ -131,7 +132,7 @@ Describe 'PSPandas profiling' {
         $profileFrame = $rows | Get-PSDataFrameProfile -SampleCount 2
 
         $profileFrame.PSTypeNames | Should -Contain 'PSPandas.Profile'
-        ($profileFrame.Columns -join ',') | Should -Be 'Column,Type,RowCount,NullCount,DistinctCount,SampleValues,Minimum,Maximum,Average,Sum,Earliest,Latest'
+        ($profileFrame.Columns -join ',') | Should -Be 'Column,Type,RowCount,NullCount,DistinctCount,Minimum,Maximum,Average,Sum,SampleValues,Earliest,Latest'
         $amount = @($profileFrame.Rows | Where-Object Column -eq 'Amount')[0]
         $amount.Type | Should -Be 'Numeric'
         $amount.RowCount | Should -Be 3
@@ -146,6 +147,12 @@ Describe 'PSPandas profiling' {
         $date = @($profileFrame.Rows | Where-Object Column -eq 'OrderDate')[0]
         $date.Type | Should -Be 'DateTime'
         $date.NullCount | Should -Be 0
+        $date.Minimum | Should -Be ([datetime]'2024-01-01')
+        $date.Maximum | Should -Be ([datetime]'2024-01-03')
+        $date.Minimum.GetType().FullName | Should -Be 'System.DateTime'
+        $date.Maximum.GetType().FullName | Should -Be 'System.DateTime'
+        $date.Average | Should -Be $null
+        $date.Sum | Should -Be $null
         $date.Earliest | Should -Be ([datetime]'2024-01-01')
         $date.Latest | Should -Be ([datetime]'2024-01-03')
 
@@ -156,7 +163,76 @@ Describe 'PSPandas profiling' {
         @($status.SampleValues).Count | Should -Be 2
     }
 
-    It 'renders profile rows in type-aware sections with date bounds and samples' {
+    It 'profiles DateOnly columns with typed minimum and maximum values' {
+        $rows = @(
+            [pscustomobject][ordered]@{ OrderDate = [System.DateOnly]::new(2026, 2, 15) }
+            [pscustomobject][ordered]@{ OrderDate = [System.DateOnly]::new(2026, 1, 5) }
+            [pscustomobject][ordered]@{ OrderDate = [System.DateOnly]::new(2026, 7, 2) }
+        ) | ConvertTo-PSDataFrame
+
+        $profileRow = @($rows | Get-PSDataFrameProfile -AsRows)[0]
+        $profileRow.Type | Should -Be 'DateOnly'
+        $profileRow.Minimum | Should -Be ([System.DateOnly]::new(2026, 1, 5))
+        $profileRow.Maximum | Should -Be ([System.DateOnly]::new(2026, 7, 2))
+        $profileRow.Minimum.GetType().FullName | Should -Be 'System.DateOnly'
+        $profileRow.Maximum.GetType().FullName | Should -Be 'System.DateOnly'
+        $profileRow.Average | Should -Be $null
+        $profileRow.Sum | Should -Be $null
+        $profileRow.Earliest | Should -Be $profileRow.Minimum
+        $profileRow.Latest | Should -Be $profileRow.Maximum
+    }
+
+    It 'uses the typed file reader for direct path input when PSFlatFile is available' {
+        $projectRoot = Split-Path (Resolve-Path $modulePath) -Parent
+        $readerManifest = Join-Path (Split-Path $projectRoot -Parent) 'PSFlatFile\PSFlatFile.psd1'
+        if (-not (Test-Path -LiteralPath $readerManifest)) {
+            Set-ItResult -Skipped -Because 'PSFlatFile is not available beside the PSPandas repository.'
+            return
+        }
+
+        Import-Module $readerManifest -Force
+        $path = Join-Path $TestDrive 'typed-orders.csv'
+        @(
+            'OrderDate,Amount'
+            '2026-02-15,10.50'
+            '2026-01-05,20.25'
+            '2026-07-02,30.00'
+        ) | Set-Content -LiteralPath $path
+
+        $frame = ConvertTo-PSDataFrame -Path $path
+        $frame.GetType().FullName | Should -Be 'PSPandas.DataFrame'
+        $frame.Rows[0].OrderDate.GetType().FullName | Should -Be 'System.DateOnly'
+
+        $profileRow = @(Get-PSDataFrameProfile -Path $path -AsRows | Where-Object Column -eq 'OrderDate')[0]
+        $profileRow.Minimum | Should -Be ([System.DateOnly]::new(2026, 1, 5))
+        $profileRow.Maximum | Should -Be ([System.DateOnly]::new(2026, 7, 2))
+    }
+
+    It 'imports a typed flat file through Import-PSDataFrame' {
+        $projectRoot = Split-Path (Resolve-Path $modulePath) -Parent
+        $readerManifest = Join-Path (Split-Path $projectRoot -Parent) 'PSFlatFile\PSFlatFile.psd1'
+        if (-not (Test-Path -LiteralPath $readerManifest)) {
+            Set-ItResult -Skipped -Because 'PSFlatFile is not available beside the PSPandas repository.'
+            return
+        }
+
+        Import-Module $readerManifest -Force
+        $path = Join-Path $TestDrive 'import-psdataframe.csv'
+        @(
+            'Region,Units,OrderDate'
+            'East,2,2026-01-05'
+            'West,3,2026-02-12'
+        ) | Set-Content -LiteralPath $path
+
+        $imported = Import-PSDataFrame $path
+        $imported.GetType().FullName | Should -Be 'PSPandas.DataFrame'
+        ($imported.Columns -join ',') | Should -Be 'Region,Units,OrderDate'
+        $imported.Rows[0].Units.GetType().FullName | Should -Be 'System.Int32'
+        $imported.Rows[0].OrderDate.GetType().FullName | Should -Be 'System.DateOnly'
+        @($imported.Rows).Count | Should -Be 2
+    }
+
+    It 'renders all profile rows in one structured table with typed bounds' {
         $rows = @(
             [pscustomobject][ordered]@{ Amount = [int32]10; OrderDate = [datetime]'2024-01-02'; Status = 'Open' }
             [pscustomobject][ordered]@{ Amount = [int32]20; OrderDate = [datetime]'2024-01-04'; Status = 'Closed' }
@@ -164,19 +240,38 @@ Describe 'PSPandas profiling' {
 
         $profileFrame = $rows | Get-PSDataFrameProfile -SampleCount 1
         $display = $profileFrame | Out-String
-        $display | Should -Match 'Numeric columns:'
-        $display | Should -Match 'Date/time columns:'
-        $display | Should -Match 'Other columns:'
+        $display | Should -Match 'Column'
+        $display | Should -Match 'Type'
+        $display | Should -Match 'Minimum'
+        $display | Should -Match 'Maximum'
+        $display | Should -Match 'Average'
+        $display | Should -Match 'Sum'
         $display | Should -Match 'SampleValues'
-
-        $dateStart = $display.IndexOf('Date/time columns:')
-        $otherStart = $display.IndexOf('Other columns:')
-        $dateSection = $display.Substring($dateStart, $otherStart - $dateStart)
-        $dateSection | Should -Match 'Earliest'
-        $dateSection | Should -Match 'Latest'
-        $dateSection | Should -Match '2024'
-        $dateSection | Should -Not -Match 'Minimum|Maximum|Average|Sum'
+        $display | Should -Match 'OrderDate'
         $display | Should -Match 'Open'
+        $display | Should -Not -Match 'Numeric columns:|Date/time columns:|Other columns:'
+        $display | Should -Not -Match 'Earliest|Latest'
+        $display.IndexOf('Minimum') | Should -BeLessThan $display.IndexOf('SampleValues')
+    }
+
+    It 'emits ordinary profile rows with AsRows while the default remains a DataFrame' {
+        $rows = @(
+            [pscustomobject][ordered]@{ Amount = [int32]10; OrderDate = [datetime]'2024-01-02'; Status = 'Open' }
+            [pscustomobject][ordered]@{ Amount = [int32]20; OrderDate = [datetime]'2024-01-04'; Status = 'Closed' }
+        ) | ConvertTo-PSDataFrame
+
+        $defaultProfile = $rows | Get-PSDataFrameProfile
+        $defaultProfile.GetType().FullName | Should -Be 'PSPandas.DataFrame'
+
+        $profileRows = @($rows | Get-PSDataFrameProfile -AsRows -SampleCount 1)
+        $profileRows.Count | Should -Be 3
+        $profileRows[0].PSTypeNames | Should -Not -Contain 'PSPandas.DataFrame'
+        ($profileRows[0].PSObject.Properties.Name -join ',') | Should -Be 'Column,Type,RowCount,NullCount,DistinctCount,Minimum,Maximum,Average,Sum,SampleValues,Earliest,Latest'
+
+        $dateRows = @($rows | Get-PSDataFrameProfile -AsRows | Where-Object Type -eq 'DateTime')
+        $dateRows.Count | Should -Be 1
+        $dateRows[0].Minimum.GetType().FullName | Should -Be 'System.DateTime'
+        $dateRows[0].Maximum | Should -Be ([datetime]'2024-01-04')
     }
 
     It 'handles empty, all-null, and mixed columns without throwing' {

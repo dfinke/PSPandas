@@ -12,6 +12,7 @@ foreach ($file in $publicFiles) {
 
 Export-ModuleMember -Function @(
     'ConvertTo-PSDataFrame',
+    'Import-PSDataFrame',
     'ConvertFrom-PSDataFrame',
     'Get-PSDataFrameProfile',
     'Get-PSDataFrameInfo',

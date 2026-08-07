@@ -7,6 +7,12 @@ $orders = @(
     [pscustomobject][ordered]@{ OrderId = 5004; OrderDate = [datetime]'2025-09-08'; State = 'TX'; Amount = [decimal]74.75; Status = $null }
 ) | ConvertTo-PSDataFrame
 
-'Data-frame profile:'
+'Data-frame profile (direct display):'
+$profile = $orders | Describe -SampleCount 2
+$profile
+
+'DateTime profile rows via -AsRows:'
 $orders |
-    Describe -SampleCount 2
+    Describe -SampleCount 2 -AsRows |
+    Where-Object Type -eq 'DateTime' |
+    Format-Table Column, Type, Minimum, Maximum

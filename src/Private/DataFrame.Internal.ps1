@@ -57,6 +57,38 @@ function ConvertTo-PSPandasRow {
     return [pscustomobject]$ordered
 }
 
+function Import-PSPandasTypedFile {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][ValidateScript({ Test-Path -LiteralPath $_ -PathType Leaf })][string]$Path,
+        [AllowNull()][object]$Schema,
+        [ValidateRange(1, 1000000)][int]$SampleSize = 100,
+        [ValidateSet('Auto', 'Present', 'None')][string]$HeaderMode = 'Auto',
+        [ValidateSet('Header', 'Generic')][string]$NameMode = 'Header'
+    )
+
+    $reader = Get-Command -Name Import-FlatFile -ErrorAction SilentlyContinue
+    if ($null -eq $reader) {
+        throw "Cannot read '$Path' as a typed PSPandas data source because Import-FlatFile was not found. Import the PSFlatFile module before using file-path input."
+    }
+
+    $readerParameters = @{
+        Path       = $Path
+        SampleSize = $SampleSize
+        HeaderMode = $HeaderMode
+        NameMode   = $NameMode
+    }
+    if ($PSBoundParameters.ContainsKey('Schema')) {
+        $readerParameters.Schema = $Schema
+    }
+
+    try {
+        & $reader @readerParameters
+    } catch {
+        throw "Typed file reader Import-FlatFile failed for '$Path': $($_.Exception.Message)"
+    }
+}
+
 function New-PSPandasDataFrameObject {
     [CmdletBinding()]
     param(

@@ -10,6 +10,7 @@
     FormatsToProcess  = @('PSPandas.format.ps1xml')
     FunctionsToExport = @(
         'ConvertTo-PSDataFrame',
+        'Import-PSDataFrame',
         'ConvertFrom-PSDataFrame',
         'Get-PSDataFrameProfile',
         'Get-PSDataFrameInfo',

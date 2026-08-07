@@ -21,7 +21,13 @@ $records = for ($index = 1; $index -le 100; $index++) {
     }
 }
 
-'Rich profile for {0} deterministic mock orders:' -f @($records).Count
-$records |
-    ConvertTo-PSDataFrame |
-    Describe -SampleCount 3
+'Rich profile for {0} deterministic mock orders (direct display):' -f @($records).Count
+$data = $records | ConvertTo-PSDataFrame
+$profile = $data | Describe -SampleCount 3
+$profile
+
+'DateTime profile rows via -AsRows:'
+$data |
+    Describe -SampleCount 3 -AsRows |
+    Where-Object Type -eq 'DateTime' |
+    Format-Table Column, Type, Minimum, Maximum

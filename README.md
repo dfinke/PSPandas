@@ -123,17 +123,54 @@ The advanced `Measure-PSDataFrame -Aggregate` form remains available for custom 
 
 ## Data profiling
 
-Profile a frame directly from a pipeline with the canonical command or its concise alias:
+`Import-PSDataFrame` is the file-oriented entry point. It uses PSFlatFile's typed reader for CSV, TSV, and other supported flat files. Import PSFlatFile first:
 
 ```powershell
-Import-Csv .\orders.csv |
-    ConvertTo-PSDataFrame |
-    Describe -SampleCount 3 |
-    ConvertFrom-PSDataFrame |
-    Format-Table -Wrap
+Import-Module PSFlatFile
+Import-Module ./PSPandas.psd1 -Force
+
+$orders = Import-PSDataFrame D:\sales.csv
+$orders | Describe
 ```
 
-The profile schema is `Column`, `Type`, `RowCount`, `NullCount`, `DistinctCount`, `SampleValues`, `Minimum`, `Maximum`, `Average`, `Sum`, `Earliest`, and `Latest`. Nulls are omitted from samples, distinct counts, and applicable summaries. Empty columns use `Type = 'Empty'`; all-null columns use `Type = 'Null'`; heterogeneous columns use `Type = 'Mixed'` and retain samples without throwing. Numeric fields are populated only for compatible numeric values, and `Earliest`/`Latest` only for DateTime-like columns. The interactive view separates Numeric, Date/time, and Other profile rows so irrelevant blank statistic columns do not crowd the display. Run the self-contained example with `& ./examples/Profile.ps1`.
+`Get-PSDataFrameProfile` is the canonical profiling command; `Describe` is its concise alias. Both commands can also take a file path directly and use the same typed reader:
+
+```powershell
+Import-Module PSFlatFile
+Import-Module ./PSPandas.psd1 -Force
+
+Describe D:\sales.csv
+Describe D:\sales.csv -AsRows |
+    Where-Object Type -eq 'DateOnly' |
+    Format-Table Column, Type, Minimum, Maximum
+```
+
+The constructor supports the same path workflow for compatibility:
+
+```powershell
+ConvertTo-PSDataFrame D:\sales.csv | Describe
+```
+
+Path input uses `Import-FlatFile` for type inference and does not silently fall back to `Import-Csv`. If `Import-FlatFile` is unavailable, PSPandas fails with an actionable error. The pipeline form remains available for ordinary objects:
+
+```powershell
+$data = Import-FlatFile .\orders.csv | ConvertTo-PSDataFrame
+$profile = $data | Describe -SampleCount 3
+$profile
+```
+
+The profile schema is `Column`, `Type`, `RowCount`, `NullCount`, `DistinctCount`, `Minimum`, `Maximum`, `Average`, `Sum`, `SampleValues`, `Earliest`, and `Latest`. Nulls are omitted from samples, distinct counts, and applicable summaries. Empty columns use `Type = 'Empty'`; all-null columns use `Type = 'Null'`; heterogeneous columns use `Type = 'Mixed'` and retain samples without throwing. `Minimum` and `Maximum` contain numeric bounds for numeric columns and typed DateTime, DateTimeOffset, or DateOnly bounds for date columns. `Average` and `Sum` are populated only for numeric columns. `Earliest` and `Latest` are retained as backward-compatible aliases for date `Minimum` and `Maximum`; they are not displayed in the default table. Samples are placed after the statistics so the most useful bounds are visible sooner in a normal console.
+
+Use `-AsRows` when a pipeline should receive ordinary profile-row objects directly:
+
+```powershell
+$data |
+    Describe -AsRows |
+    Where-Object Type -eq 'DateTime' |
+    Format-Table Column, Type, Minimum, Maximum
+```
+
+The direct display is uniform across source columns and includes counts, samples, typed bounds, and numeric statistics where applicable. Run the self-contained examples with `& ./examples/Profile.ps1` and `& ./examples/RichProfile.ps1`.
 
 ## Interactive DataFrame display
 
@@ -145,12 +182,13 @@ $orders
 $orders | Describe
 ```
 
-The formatter uses the frame's current column shape, omits wrapper properties such as `Columns`, `Rows`, and `Count`, and displays an explicit empty-frame message. `$orders.Rows` remains available for direct row access, and `ConvertFrom-PSDataFrame` remains the explicit choice when downstream commands should receive individual rows.
+The formatter uses the frame's current column shape, omits wrapper properties such as `Columns`, `Rows`, and `Count`, and displays an explicit empty-frame message. Profile frames render as one structured table with `Minimum`/`Maximum`; `$orders.Rows` remains available for direct row access, and `ConvertFrom-PSDataFrame` remains the explicit choice when downstream commands should receive individual rows.
 
-Run both complete examples from the project folder with:
+Run the complete examples from the project folder with:
 
 ```powershell
 & ./examples/QuickStart.ps1
+& ./examples/Import.ps1
 & ./examples/Grouping.ps1
 & ./examples/Joins.ps1
 & ./examples/Columns.ps1
@@ -162,9 +200,10 @@ Run both complete examples from the project folder with:
 
 ## Supported functionality
 
-- `ConvertTo-PSDataFrame`: collect ordinary pipeline objects into a frame; explicit columns can define an empty or stable schema.
+- `Import-PSDataFrame`: read supported flat files through PSFlatFile's typed `Import-FlatFile` reader and return a PSPandas frame. The reader module must be imported or installed separately.
+- `ConvertTo-PSDataFrame`: collect ordinary pipeline objects into a frame; explicit columns can define an empty or stable schema. A file path also delegates to the typed reader for compatibility.
 - `ConvertFrom-PSDataFrame`: emit frame rows as ordinary PowerShell objects for existing commands, CSV writers, SQL clients, or later integrations.
-- `Get-PSDataFrameProfile` / `Describe`: return one profile row per column with type, row/null/distinct counts, samples, numeric summaries, and date bounds.
+- `Get-PSDataFrameProfile` / `Describe`: return one profile row per column with type, row/null/distinct counts, samples, numeric summaries, and typed numeric or DateTime-like bounds, including DateOnly. `-AsRows` emits ordinary profile-row objects for direct pipeline filtering.
 - `Get-PSDataFrameInfo`, `Get-PSDataFrameColumn`, and `Get-PSDataFrameHead`: inspect schema, size, columns, and leading rows.
 - `Find-PSDataFrame`: filter rows with a `Where-Object`-style scriptblock. `Where-PSDataFrame` remains as a compatibility alias.
 - `Select-PSDataFrame`: select and reorder existing columns.
@@ -188,4 +227,4 @@ Run the test suite from the project folder:
 Invoke-Pester ./tests -Output Detailed
 ```
 
-The runnable examples are `examples/QuickStart.ps1`, `examples/Grouping.ps1`, `examples/Joins.ps1`, `examples/Columns.ps1`, `examples/Summarize.ps1`, `examples/SalesReporting.ps1`, `examples/Profile.ps1`, and `examples/RichProfile.ps1`.
+The runnable examples are `examples/QuickStart.ps1`, `examples/Import.ps1`, `examples/Grouping.ps1`, `examples/Joins.ps1`, `examples/Columns.ps1`, `examples/Summarize.ps1`, `examples/SalesReporting.ps1`, `examples/Profile.ps1`, and `examples/RichProfile.ps1`.

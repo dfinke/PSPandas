@@ -16,24 +16,9 @@ $rows = @($_.Rows)
 if ($rows.Count -eq 0) {
     'PSPandas.DataFrame (0 rows; columns: {0})' -f ($_.Columns -join ', ')
 } elseif (@($_.PSTypeNames) -contains 'PSPandas.Profile') {
-    $sections = [System.Collections.Generic.List[string]]::new()
-    $numericRows = @($rows | Where-Object { $_.Type -eq 'Numeric' })
-    $dateRows = @($rows | Where-Object { $_.Type -in @('DateTime', 'DateTimeOffset') })
-    $otherRows = @($rows | Where-Object { $_.Type -notin @('Numeric', 'DateTime', 'DateTimeOffset') })
-
-    if ($numericRows.Count -gt 0) {
-        [void]$sections.Add('Numeric columns:')
-        [void]$sections.Add(($numericRows | Format-Table -Property Column, Type, RowCount, NullCount, DistinctCount, SampleValues, Minimum, Maximum, Average, Sum -AutoSize | Out-String -Width 300).TrimEnd())
-    }
-    if ($dateRows.Count -gt 0) {
-        [void]$sections.Add('Date/time columns:')
-        [void]$sections.Add(($dateRows | Format-Table -Property Column, Type, RowCount, NullCount, DistinctCount, SampleValues, Earliest, Latest -AutoSize | Out-String -Width 300).TrimEnd())
-    }
-    if ($otherRows.Count -gt 0) {
-        [void]$sections.Add('Other columns:')
-        [void]$sections.Add(($otherRows | Format-Table -Property Column, Type, RowCount, NullCount, DistinctCount, SampleValues -AutoSize | Out-String -Width 300).TrimEnd())
-    }
-    $sections -join [Environment]::NewLine
+    $rows |
+        Format-Table -Property Column, Type, RowCount, NullCount, DistinctCount, Minimum, Maximum, Average, Sum, SampleValues -AutoSize |
+        Out-String -Width 300
 } else {
     $rows | Format-Table -AutoSize | Out-String -Width 200
 }

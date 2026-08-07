@@ -8,32 +8,78 @@ function Get-PSDataFrameProfile {
     are counted and omitted from distinct counts, samples, and applicable
     summaries. Numeric and date summaries are populated only when all
     non-null values are compatible. Mixed, empty, and all-null columns remain
-    profileable without throwing.
+    profileable without throwing. A file path uses the typed Import-FlatFile
+    reader from PSFlatFile; no untyped Import-Csv fallback is used.
 
     .PARAMETER SampleCount
     Maximum number of non-null sample values retained per column.
 
+    .PARAMETER AsRows
+    Emits ordinary profile-row objects instead of the default profile DataFrame.
+
+    .PARAMETER Path
+    Path to a file read through the typed Import-FlatFile reader from PSFlatFile.
+
+    .PARAMETER Schema
+    Optional schema passed to Import-FlatFile.
+
+    .PARAMETER SampleSize
+    Maximum number of nonempty file lines used by Import-FlatFile inference.
+
+    .PARAMETER HeaderMode
+    Header handling passed to Import-FlatFile.
+
+    .PARAMETER NameMode
+    Inferred property-name mode passed to Import-FlatFile.
+
     .EXAMPLE
-    Import-Csv .\orders.csv | ConvertTo-PSDataFrame | Describe
+    Import-FlatFile .\orders.csv | ConvertTo-PSDataFrame | Describe
+
+    .EXAMPLE
+    $data | Describe -AsRows | Where-Object Type -eq 'DateTime'
+
+    .EXAMPLE
+    Describe .\orders.csv
     #>
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'Path')]
     param(
-        [Parameter(Mandatory, ValueFromPipeline = $true)]$DataFrame,
-        [ValidateRange(0, 100)][int]$SampleCount = 3
+        [Parameter(Mandatory, ValueFromPipeline = $true, ParameterSetName = 'DataFrame')]$DataFrame,
+        [Parameter(Mandatory, Position = 0, ParameterSetName = 'Path')][string]$Path,
+        [ValidateRange(0, 100)][int]$SampleCount = 3,
+        [switch]$AsRows,
+        [Parameter(ParameterSetName = 'Path')][AllowNull()][object]$Schema,
+        [Parameter(ParameterSetName = 'Path')][ValidateRange(1, 1000000)][int]$SampleSize = 100,
+        [Parameter(ParameterSetName = 'Path')][ValidateSet('Auto', 'Present', 'None')][string]$HeaderMode = 'Auto',
+        [Parameter(ParameterSetName = 'Path')][ValidateSet('Header', 'Generic')][string]$NameMode = 'Header'
     )
     process {
-        Assert-PSPandasDataFrame -DataFrame $DataFrame
+        if ($PSCmdlet.ParameterSetName -eq 'Path') {
+            $readerParameters = @{
+                Path       = $Path
+                SampleSize = $SampleSize
+                HeaderMode = $HeaderMode
+                NameMode   = $NameMode
+            }
+            if ($PSBoundParameters.ContainsKey('Schema')) {
+                $readerParameters.Schema = $Schema
+            }
+            $sourceDataFrame = ConvertTo-PSDataFrame @readerParameters
+        } else {
+            $sourceDataFrame = $DataFrame
+        }
+
+        Assert-PSPandasDataFrame -DataFrame $sourceDataFrame
 
         $profileColumns = @(
             'Column', 'Type', 'RowCount', 'NullCount', 'DistinctCount',
-            'SampleValues', 'Minimum', 'Maximum', 'Average', 'Sum',
+            'Minimum', 'Maximum', 'Average', 'Sum', 'SampleValues',
             'Earliest', 'Latest'
         )
         $profileRows = [System.Collections.Generic.List[object]]::new()
 
-        foreach ($column in $DataFrame.Columns) {
+        foreach ($column in $sourceDataFrame.Columns) {
             $rawValues = [System.Collections.Generic.List[object]]::new()
-            foreach ($row in @($DataFrame.Rows)) {
+            foreach ($row in @($sourceDataFrame.Rows)) {
                 [void]$rawValues.Add((Get-PSPandasPropertyValue -InputObject $row -Name $column))
             }
 
@@ -88,7 +134,7 @@ function Get-PSDataFrameProfile {
                 if ($allNumeric) {
                     'Numeric'
                 } elseif ($allDateLike) {
-                    if ($typeNames -contains 'DateTimeOffset' -and $typeNames.Count -eq 1) { 'DateTimeOffset' } else { 'DateTime' }
+                    if ($typeNames.Count -eq 1) { $typeNames[0] } else { 'DateTime' }
                 } elseif ($typeNames.Count -eq 1) {
                     $typeNames[0]
                 } else {
@@ -117,22 +163,24 @@ function Get-PSDataFrameProfile {
                     $sum += $number
                 }
                 $average = $sum / $numericValues.Count
-            } elseif ($nonNullValues.Count -gt 0 -and $type -in @('DateTime', 'DateTimeOffset')) {
-                $earliest = $nonNullValues[0]
-                $latest = $nonNullValues[0]
-                $earliestComparable = [DateTimeOffset]$earliest
+            } elseif ($nonNullValues.Count -gt 0 -and $type -in @('DateTime', 'DateTimeOffset', 'DateOnly')) {
+                $minimum = $nonNullValues[0]
+                $maximum = $nonNullValues[0]
+                $earliestComparable = ConvertTo-PSDataFrameProfileDateComparable -Value $minimum
                 $latestComparable = $earliestComparable
                 foreach ($value in @($nonNullValues | Select-Object -Skip 1)) {
-                    $comparable = [DateTimeOffset]$value
+                    $comparable = ConvertTo-PSDataFrameProfileDateComparable -Value $value
                     if ($comparable -lt $earliestComparable) {
-                        $earliest = $value
+                        $minimum = $value
                         $earliestComparable = $comparable
                     }
                     if ($comparable -gt $latestComparable) {
-                        $latest = $value
+                        $maximum = $value
                         $latestComparable = $comparable
                     }
                 }
+                $earliest = $minimum
+                $latest = $maximum
             }
 
             [void]$profileRows.Add([pscustomobject][ordered]@{
@@ -141,11 +189,11 @@ function Get-PSDataFrameProfile {
                 RowCount      = $rawValues.Count
                 NullCount     = $nullCount
                 DistinctCount = $distinctValues.Count
-                SampleValues  = [object[]]$samples.ToArray()
                 Minimum       = $minimum
                 Maximum       = $maximum
                 Average       = $average
                 Sum           = $sum
+                SampleValues  = [object[]]$samples.ToArray()
                 Earliest      = $earliest
                 Latest        = $latest
             })
@@ -153,6 +201,14 @@ function Get-PSDataFrameProfile {
 
         $profileFrame = New-PSPandasDataFrameObject -Rows $profileRows.ToArray() -Columns $profileColumns
         [void]$profileFrame.PSTypeNames.Insert(0, 'PSPandas.Profile')
+
+        if ($AsRows) {
+            foreach ($profileRow in @($profileFrame.Rows)) {
+                Write-Output $profileRow
+            }
+            return
+        }
+
         $profileFrame
     }
 }
@@ -171,7 +227,20 @@ function Test-PSDataFrameProfileDateType {
     [CmdletBinding()]
     param([Parameter(Mandatory)][type]$Type)
 
-    return $Type -in @([datetime], [datetimeoffset])
+    return $Type -in @([datetime], [datetimeoffset], [System.DateOnly])
+}
+
+function ConvertTo-PSDataFrameProfileDateComparable {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][object]$Value)
+
+    if ($Value -is [System.DateOnly]) {
+        return $Value.ToDateTime([System.TimeOnly]::MinValue)
+    }
+    if ($Value -is [System.DateTimeOffset]) {
+        return [System.DateTimeOffset]$Value
+    }
+    return [System.DateTimeOffset]$Value
 }
 
 Set-Alias -Name Describe -Value Get-PSDataFrameProfile
