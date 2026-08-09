@@ -297,6 +297,33 @@ Describe 'PSPandas profiling' {
         $firstWorksheetImport.Rows[0].Region | Should -Be 'East'
     }
 
+    It 'preserves typed dates in the retail workbook fixture' {
+        $importExcelManifest = Get-Module -ListAvailable -Name ImportExcel |
+            Sort-Object Version -Descending |
+            Select-Object -First 1
+        if ($null -eq $importExcelManifest) {
+            Set-ItResult -Skipped -Because 'ImportExcel is not installed.'
+            return
+        }
+
+        Import-Module ImportExcel -Force
+        $path = Join-Path $PSScriptRoot '..\examples\data\RetailWorkbook.xlsx'
+        $salesRows = @(Import-Excel $path -WorksheetName Sales)
+        $orderLineRows = @(Import-Excel $path -WorksheetName OrderLines)
+        $returnRows = @(Import-Excel $path -WorksheetName Returns)
+
+        @($salesRows).'Order Date' | ForEach-Object { $_ | Should -BeOfType [datetime] }
+        @($salesRows).'Ship Date' | ForEach-Object { $_ | Should -BeOfType [datetime] }
+        @($orderLineRows).'Order Date' | ForEach-Object { $_ | Should -BeOfType [datetime] }
+        @($orderLineRows).'Ship Date' | ForEach-Object { $_ | Should -BeOfType [datetime] }
+        @($returnRows).'Returned Date' | ForEach-Object { $_ | Should -BeOfType [datetime] }
+
+        $book = Import-PSDataFrame $path -AsWorkbook
+        $book.Sales.Rows[0].'Order Date' | Should -BeOfType [datetime]
+        $book.Sales.Rows[0].'Ship Date' | Should -BeOfType [datetime]
+        $book.Returns.Rows[0].'Returned Date' | Should -BeOfType [datetime]
+    }
+
     It 'imports all worksheets as an ordered workbook with tab-completable sheet properties' {
         $importExcelManifest = Get-Module -ListAvailable -Name ImportExcel |
             Sort-Object Version -Descending |
