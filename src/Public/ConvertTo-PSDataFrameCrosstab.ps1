@@ -167,6 +167,7 @@ function ConvertTo-PSDataFrameCrosstab {
         }
 
         $normalizedRows = [System.Collections.Generic.List[object]]::new()
+        Write-PSPandasProgress -Enabled -Activity 'PSPandas crosstab' -Status "Normalizing 0 of $($resultRows.Count) rows" -PercentComplete 50 -Id 6
         for ($rowIndex = 0; $rowIndex -lt $resultRows.Count; $rowIndex++) {
             $ordered = [ordered]@{}
             foreach ($indexName in $Index) {
@@ -189,6 +190,9 @@ function ConvertTo-PSDataFrameCrosstab {
                 $ordered[$columnName] = if ($Percent) { $ratio * 100.0 } else { $ratio }
             }
             [void]$normalizedRows.Add([pscustomobject]$ordered)
+            if ($rowIndex -eq $resultRows.Count - 1 -or ($rowIndex + 1) % 50 -eq 0) {
+                Write-PSPandasProgress -Enabled -Activity 'PSPandas crosstab' -Status "Normalized $($rowIndex + 1) of $($resultRows.Count) rows" -PercentComplete ([int](50 + (45 * (($rowIndex + 1) / [Math]::Max(1, $resultRows.Count))))) -Id 6
+            }
         }
 
         $pivotMetadata = [ordered]@{}
@@ -197,6 +201,7 @@ function ConvertTo-PSDataFrameCrosstab {
         }
         $pivotMetadata['Normalize'] = $Normalize
         $pivotMetadata['Percent'] = [bool]$Percent
+        Write-PSPandasProgress -Enabled -Activity 'PSPandas crosstab' -Status 'Crosstab complete' -PercentComplete 100 -Id 6 -Completed
         New-PSPandasDataFrameObject -Rows ([object[]]$normalizedRows.ToArray()) -Columns ([string[]]$result.Columns) -Metadata ([ordered]@{ Pivot = [pscustomobject]$pivotMetadata })
     }
 }

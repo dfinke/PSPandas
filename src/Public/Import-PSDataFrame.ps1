@@ -8,12 +8,20 @@ function Import-PSDataFrame {
     PSPandas' native typed reader. XLSX and XLSM workbooks use Import-Excel
     from the optional ImportExcel module. When no worksheet name is supplied,
     the first worksheet is imported. Use -AsWorkbook to return all worksheets
-    in a workbook object with tab-completable sheet properties.
+    in a workbook object with tab-completable sheet properties. HTTP and
+    HTTPS URI input is downloaded and processed through the same readers.
     Import-PSDataFrame is the file-oriented entry point; use
     ConvertTo-PSDataFrame for ordinary pipeline objects.
 
     .PARAMETER Path
     Path to the file to import.
+
+    .PARAMETER Uri
+    Absolute HTTP or HTTPS URI to download and import.
+
+    .PARAMETER TimeoutSec
+    Maximum number of seconds allowed for an HTTP or HTTPS download. The
+    default is 30 seconds.
 
     .PARAMETER Schema
     Optional schema for native delimited-file type conversion.
@@ -43,6 +51,9 @@ function Import-PSDataFrame {
     Import-PSDataFrame .\orders.csv | Describe
 
     .EXAMPLE
+    Import-PSDataFrame -Uri 'https://example.com/orders.csv' | Describe
+
+    .EXAMPLE
     Import-PSDataFrame .\sales.xlsx -WorksheetName Orders | Describe
 
     .EXAMPLE
@@ -53,9 +64,11 @@ function Import-PSDataFrame {
     .OUTPUTS
     PSPandas.DataFrame or PSPandas.Workbook when AsWorkbook is used.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'Path')]
     param(
-        [Parameter(Mandatory, Position = 0)][ValidateScript({ Test-Path -LiteralPath $_ -PathType Leaf })][string]$Path,
+        [Parameter(Mandatory, Position = 0, ParameterSetName = 'Path')][string]$Path,
+        [Parameter(Mandatory, Position = 0, ParameterSetName = 'Uri')][uri]$Uri,
+        [Parameter(ParameterSetName = 'Uri')][ValidateRange(1, 600)][int]$TimeoutSec = 30,
         [AllowNull()][object]$Schema,
         [ValidateRange(1, 1000000)][int]$SampleSize = 100,
         [ValidateSet('Auto', 'Present', 'None')][string]$HeaderMode = 'Auto',
@@ -64,11 +77,29 @@ function Import-PSDataFrame {
         [switch]$AsWorkbook
     )
 
+    if ($PSCmdlet.ParameterSetName -eq 'Uri') {
+        $temporaryPath = Save-PSPandasUriToTemporaryFile -Uri $Uri -TimeoutSec $TimeoutSec
+        try {
+            $localParameters = @{ Path = $temporaryPath }
+            foreach ($parameterName in @('Schema', 'SampleSize', 'HeaderMode', 'NameMode', 'WorksheetName', 'AsWorkbook')) {
+                if ($PSBoundParameters.ContainsKey($parameterName)) { $localParameters[$parameterName] = $PSBoundParameters[$parameterName] }
+            }
+            return Import-PSDataFrame @localParameters
+        } finally {
+            Remove-Item -LiteralPath $temporaryPath -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        throw "Path '$Path' does not exist or is not a file."
+    }
+
     $extension = [System.IO.Path]::GetExtension($Path).ToLowerInvariant()
     $displayExtension = if ([string]::IsNullOrWhiteSpace($extension)) { '<none>' } else { $extension }
     $excelExtensions = @('.xlsx', '.xlsm')
 
     if ($extension -in $excelExtensions) {
+        Write-PSPandasProgress -Enabled -Activity 'PSPandas import' -Status 'Reading Excel worksheet metadata' -PercentComplete 10 -Id 3
         foreach ($flatFileParameter in @('Schema', 'SampleSize', 'HeaderMode', 'NameMode')) {
             if ($PSBoundParameters.ContainsKey($flatFileParameter)) {
                 throw "Parameter '-$flatFileParameter' is for flat-file input and cannot be used with Excel file extension '$displayExtension'."
@@ -106,13 +137,17 @@ function Import-PSDataFrame {
                     Name      = $sheetName
                     DataFrame = $sheetFrame
                 })
+                $sheetPercent = [int](10 + (85 * ($worksheetFrames.Count / [Math]::Max(1, $sheetInfo.Count))))
+                Write-PSPandasProgress -Enabled -Activity 'PSPandas import' -Status "Read worksheet $($worksheetFrames.Count) of $($sheetInfo.Count)" -PercentComplete $sheetPercent -Id 3
             }
 
             $resolvedPath = (Resolve-Path -LiteralPath $Path).ProviderPath
+            Write-PSPandasProgress -Enabled -Activity 'PSPandas import' -Status 'Workbook import complete' -PercentComplete 100 -Id 3 -Completed
             return New-PSPandasWorkbookObject -Path $resolvedPath -Worksheets $worksheetFrames.ToArray()
         }
 
         $excelRows = @(Import-PSPandasExcelRows -Path $Path -Reader $excelReader -WorksheetName $WorksheetName)
+        Write-PSPandasProgress -Enabled -Activity 'PSPandas import' -Status 'Excel import complete' -PercentComplete 100 -Id 3 -Completed
         return New-PSPandasDataFrameObject -Rows $excelRows
     }
 
@@ -132,7 +167,6 @@ function Import-PSDataFrame {
     if ($PSBoundParameters.ContainsKey('Schema')) {
         $readerParameters.Schema = $Schema
     }
-
     $typedRows = @(Import-PSPandasTypedFile @readerParameters)
     New-PSPandasDataFrameObject -Rows $typedRows
 }

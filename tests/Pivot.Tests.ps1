@@ -40,6 +40,32 @@ Describe 'PSPandas wide pivot command surface' {
         (Get-Command xtab -Module PSPandas).Definition | Should -Be 'ConvertTo-PSDataFrameCrosstab'
         (Get-Help xtab -ErrorAction Stop).Name | Should -Be 'ConvertTo-PSDataFrameCrosstab'
         (Get-Help xtab -ErrorAction Stop).Parameters.Parameter.Name | Should -Contain 'Percent'
+        (Get-Command ConvertTo-PSDataFrameWide -Module PSPandas).Parameters.ContainsKey('Progress') | Should -BeFalse
+        (Get-Command ConvertTo-PSDataFrameWide -Module PSPandas).Parameters.ContainsKey('ProgressAction') | Should -BeTrue
+        (Get-Command ConvertTo-PSDataFrameCrosstab -Module PSPandas).Parameters.ContainsKey('Progress') | Should -BeFalse
+        (Get-Command ConvertTo-PSDataFrameCrosstab -Module PSPandas).Parameters.ContainsKey('ProgressAction') | Should -BeTrue
+    }
+
+    It 'emits automatic progress for Pivot and Crosstab while preserving results' {
+        $script:progressCallCount = 0
+        Mock -CommandName Write-Progress -ModuleName PSPandas -MockWith { $script:progressCallCount++ }
+
+        $module = Get-Module PSPandas
+        $previousPreference = $module.SessionState.PSVariable.Get('ProgressPreference').Value
+        $module.SessionState.PSVariable.Set('ProgressPreference', 'SilentlyContinue')
+        try {
+            $wideSuppressed = $pivotFrame | Pivot -Index Region -Columns Channel -Values Revenue -Aggregate Sum
+        } finally {
+            $module.SessionState.PSVariable.Set('ProgressPreference', $previousPreference)
+        }
+        $wideAutomatic = $pivotFrame | Pivot -Index Region -Columns Channel -Values Revenue -Aggregate Sum
+        $crossAutomatic = $pivotFrame | Crosstab -Index Region -Columns Channel
+        $normalized = $pivotFrame | Crosstab -Index Region -Columns Channel -Normalize Index
+
+        $script:progressCallCount | Should -BeGreaterThan 0
+        ($wideAutomatic.Columns -join ',') | Should -Be ($wideSuppressed.Columns -join ',')
+        @($wideAutomatic.Rows).Count | Should -Be @($wideSuppressed.Rows).Count
+        @($crossAutomatic.Rows).Count | Should -Be @($normalized.Rows).Count
     }
 
     It 'counts index and column combinations and supports margins' {

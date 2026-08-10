@@ -153,6 +153,55 @@ Describe 'PSPandas construction and inspection' {
         (Get-Command Summarize).Definition | Should -Be 'Measure-PSDataFrame'
         (Get-Command Describe -Module PSPandas).CommandType | Should -Be 'Alias'
         (Get-Command Describe -Module PSPandas).Definition | Should -Be 'Get-PSDataFrameProfile'
+        foreach ($commandName in @('Import-PSDataFrame', 'ConvertTo-PSDataFrame', 'Get-PSDataFrameProfile')) {
+            (Get-Command $commandName -Module PSPandas).Parameters.ContainsKey('Progress') | Should -BeFalse
+            (Get-Command $commandName -Module PSPandas).Parameters.ContainsKey('ProgressAction') | Should -BeTrue
+        }
+    }
+}
+
+Describe 'PSPandas progress behavior' {
+    It 'emits automatic progress by default' {
+        Mock -CommandName Write-Progress -ModuleName PSPandas
+        $path = Join-Path $TestDrive 'quiet-progress.csv'
+        @('Region,Units', 'East,2', 'West,3') | Set-Content -LiteralPath $path
+
+        $default = Import-PSDataFrame -Path $path
+        Assert-MockCalled Write-Progress -ModuleName PSPandas -Times 1
+    }
+
+    It 'respects ProgressPreference suppression without changing results' {
+        Mock -CommandName Write-Progress -ModuleName PSPandas
+        $path = Join-Path $TestDrive 'suppressed-progress.csv'
+        @('Region,Units', 'East,2', 'West,3') | Set-Content -LiteralPath $path
+
+        $module = Get-Module PSPandas
+        $previousPreference = $module.SessionState.PSVariable.Get('ProgressPreference').Value
+        $module.SessionState.PSVariable.Set('ProgressPreference', 'SilentlyContinue')
+        try {
+            $suppressed = Import-PSDataFrame -Path $path
+        } finally {
+            $module.SessionState.PSVariable.Set('ProgressPreference', $previousPreference)
+        }
+        Assert-MockCalled Write-Progress -ModuleName PSPandas -Times 0 -Exactly
+        $suppressed.GetType().FullName | Should -Be 'PSPandas.DataFrame'
+        @($suppressed.Rows).Count | Should -Be 2
+    }
+
+    It 'emits automatic progress for import, conversion, and profiling without changing results' {
+        $script:progressCallCount = 0
+        Mock -CommandName Write-Progress -ModuleName PSPandas -MockWith { $script:progressCallCount++ }
+        $path = Join-Path $TestDrive 'enabled-progress.csv'
+        @('Region,Units,OrderDate', 'East,2,2026-01-05', 'West,3,2026-02-12') | Set-Content -LiteralPath $path
+
+        $imported = Import-PSDataFrame -Path $path
+        $converted = ConvertTo-PSDataFrame -Path $path
+        $profile = Get-PSDataFrameProfile -Path $path -AsRows
+
+        $script:progressCallCount | Should -BeGreaterThan 0
+        ($imported.Columns -join ',') | Should -Be ($converted.Columns -join ',')
+        @($imported.Rows).Count | Should -Be @($converted.Rows).Count
+        @($profile).Count | Should -Be 3
     }
 }
 
@@ -389,6 +438,76 @@ Describe 'PSPandas profiling' {
         { Get-PSDataFrameProfile $path -AsRows } | Should -Throw "*Unsupported delimited file extension '*.json'*"
     }
 
+    It 'reads HTTP URI sources through the native reader across all file-oriented commands' {
+        Mock -CommandName Invoke-WebRequest -ModuleName PSPandas -MockWith {
+            $content = "Region,Units,OrderDate`nEast,2,2026-01-05`nWest,3,2026-02-12"
+            $stream = [System.IO.MemoryStream]::new([System.Text.UTF8Encoding]::new($false).GetBytes($content))
+            [pscustomobject]@{
+                Headers          = @{ 'Content-Type' = 'text/csv' }
+                Content          = $content
+                RawContentStream = $stream
+            }
+        }
+
+        $uri = [uri]'https://example.com/orders.csv'
+        $converted = ConvertTo-PSDataFrame -Uri $uri
+        $imported = Import-PSDataFrame -Uri $uri
+        $profileRows = @(Get-PSDataFrameProfile -Uri $uri -AsRows)
+
+        @($converted.Rows).Count | Should -Be 2
+        @($imported.Rows).Count | Should -Be 2
+        $converted.Rows[0].Units.GetType().FullName | Should -Be 'System.Int32'
+        $imported.Rows[0].OrderDate.GetType().FullName | Should -Be 'System.DateOnly'
+        ($profileRows | Where-Object Column -eq 'OrderDate').Type | Should -Be 'DateOnly'
+        Assert-MockCalled Invoke-WebRequest -ModuleName PSPandas -Times 3 -Exactly
+    }
+
+    It 'translates standard GitHub blob URLs to raw download URLs' {
+        Mock -CommandName Invoke-WebRequest -ModuleName PSPandas -MockWith {
+            $content = "Player,Team,HomeRuns`nAlice,North,12`nBob,South,9"
+            [pscustomobject]@{
+                Headers          = @{ 'Content-Type' = 'text/csv' }
+                Content          = $content
+                RawContentStream = [System.IO.MemoryStream]::new([System.Text.UTF8Encoding]::new($false).GetBytes($content))
+            }
+        }
+
+        $blobUri = [uri]'https://github.com/dfinke/PSKit/blob/master/data/baseball.csv'
+        $frame = ConvertTo-PSDataFrame -Uri $blobUri -TimeoutSec 7
+
+        @($frame.Rows).Count | Should -Be 2
+        $frame.Rows[0].HomeRuns.GetType().FullName | Should -Be 'System.Int32'
+        Assert-MockCalled Invoke-WebRequest -ModuleName PSPandas -Times 1 -Exactly -ParameterFilter {
+            $Uri.AbsoluteUri -eq 'https://raw.githubusercontent.com/dfinke/PSKit/master/data/baseball.csv' -and
+            $TimeoutSec -eq 7
+        }
+    }
+
+    It 'rejects HTML responses instead of passing them to a data reader' {
+        Mock -CommandName Invoke-WebRequest -ModuleName PSPandas -MockWith {
+            $content = '<!doctype html><html><head><title>GitHub</title></head><body>Blob page</body></html>'
+            [pscustomobject]@{
+                Headers          = @{ 'Content-Type' = 'text/html; charset=utf-8' }
+                Content          = $content
+                RawContentStream = [System.IO.MemoryStream]::new([System.Text.UTF8Encoding]::new($false).GetBytes($content))
+            }
+        }
+
+        { Import-PSDataFrame -Uri ([uri]'https://example.com/orders.csv') } |
+            Should -Throw '*received an HTML page*instead of a data file*'
+    }
+
+    It 'rejects unsupported URI schemes and reports download failures clearly' {
+        { ConvertTo-PSDataFrame -Uri ([uri]'ftp://example.com/orders.csv') } |
+            Should -Throw '*only absolute http:// and https:// URIs*'
+
+        Mock -CommandName Invoke-WebRequest -ModuleName PSPandas -MockWith {
+            throw [System.Net.WebException]::new('The remote server returned an error: (503) Service Unavailable.')
+        }
+        { Import-PSDataFrame -Uri ([uri]'https://example.com/orders.csv') } |
+            Should -Throw "*could not download URI*503*"
+    }
+
     It 'validates Import-PSDataFrame file-type-specific parameters' {
         $xlsxPath = Join-Path $TestDrive 'validation.xlsx'
         $xlsmPath = Join-Path $TestDrive 'validation.xlsm'
@@ -437,6 +556,18 @@ Describe 'PSPandas profiling' {
         ($firstWorksheetImport.Columns -join ',') | Should -Be 'Region,Units,Amount'
         @($firstWorksheetImport.Rows).Count | Should -Be 2
         $firstWorksheetImport.Rows[0].Region | Should -Be 'East'
+
+        $workbookBytes = [System.IO.File]::ReadAllBytes($path)
+        Mock -CommandName Invoke-WebRequest -ModuleName PSPandas -MockWith {
+            [pscustomobject]@{
+                Headers          = @{ 'Content-Type' = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+                Content          = $null
+                RawContentStream = [System.IO.MemoryStream]::new($workbookBytes)
+            }
+        }
+        $uriImport = Import-PSDataFrame -Uri ([uri]'https://example.com/typed-orders.xlsx') -WorksheetName Orders
+        ($uriImport.Columns -join ',') | Should -Be 'Region,Units,Amount'
+        @($uriImport.Rows).Count | Should -Be 2
     }
 
     It 'preserves typed dates in the retail workbook fixture' {
@@ -532,6 +663,51 @@ Describe 'PSPandas profiling' {
         $display | Should -Not -Match 'Numeric columns:|Date/time columns:|Other columns:'
         $display | Should -Not -Match 'Earliest|Latest'
         $display.IndexOf('Minimum') | Should -BeLessThan $display.IndexOf('SampleValues')
+    }
+
+    It 'right-aligns DateOnly and numeric profile statistics in default and AsRows views' {
+        $rows = @(
+            [pscustomobject][ordered]@{ Amount = [decimal]10.5; OrderDate = [System.DateOnly]::new(2026, 1, 5); Status = 'Open' }
+            [pscustomobject][ordered]@{ Amount = [decimal]20.25; OrderDate = [System.DateOnly]::new(2026, 7, 2); Status = 'Closed' }
+        ) | ConvertTo-PSDataFrame
+
+        $profile = $rows | Get-PSDataFrameProfile
+        $profileRows = @($rows | Get-PSDataFrameProfile -AsRows)
+        $header = (($profileRows | Format-Table | Out-String -Width 240) -split "`r?`n" | Where-Object { $_ -match 'Column\s+Type\s+RowCount' } | Select-Object -First 1)
+        $dateLine = (($profileRows | Format-Table | Out-String -Width 240) -split "`r?`n" | Where-Object { $_ -match '^OrderDate\s' } | Select-Object -First 1)
+        $amountLine = (($profile | Out-String -Width 240) -split "`r?`n" | Where-Object { $_ -match '^Amount\s' } | Select-Object -First 1)
+        $dateMinimumText = $profileRows[1].Minimum.ToString('yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
+        $dateMaximumText = $profileRows[1].Maximum.ToString('yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
+
+        $dateLine | Should -Match '2026-01-05'
+        $dateLine | Should -Match '2026-07-02'
+        ($header.IndexOf('Minimum') + 'Minimum'.Length) | Should -Be ($dateLine.IndexOf($dateMinimumText) + $dateMinimumText.Length)
+        ($header.IndexOf('Maximum') + 'Maximum'.Length) | Should -Be ($dateLine.IndexOf($dateMaximumText) + $dateMaximumText.Length)
+        $profileRows[1].Minimum.GetType().FullName | Should -Be 'System.DateOnly'
+        $profileRows[1].Maximum.GetType().FullName | Should -Be 'System.DateOnly'
+        $profile.Rows[0].Minimum | Should -Be 10.5
+        $profile.Rows[0].Maximum | Should -Be 20.25
+        $profileRows[1].PSObject.Properties.Name -join ',' | Should -Be 'Column,Type,RowCount,NullCount,DistinctCount,Minimum,Maximum,Average,Sum,SampleValues,Earliest,Latest'
+    }
+
+    It 'renders DateTime bounds as ISO date-time values without changing raw types' {
+        $rows = @(
+            [pscustomobject][ordered]@{ When = [datetime]'2026-01-05T12:34:56'; Value = 10 }
+            [pscustomobject][ordered]@{ When = [datetime]'2026-07-02T08:09:10'; Value = 20 }
+        ) | ConvertTo-PSDataFrame
+
+        $profile = $rows | Get-PSDataFrameProfile
+        $profileRows = @($rows | Get-PSDataFrameProfile -AsRows)
+        $display = $profile | Out-String -Width 240
+        $header = ($display -split "`r?`n" | Where-Object { $_ -match 'Column\s+Type\s+RowCount' } | Select-Object -First 1)
+        $dateLine = ($display -split "`r?`n" | Where-Object { $_ -match '^When\s' } | Select-Object -First 1)
+
+        $dateLine | Should -Match '2026-01-05T12:34:56'
+        $dateLine | Should -Match '2026-07-02T08:09:10'
+        ($header.IndexOf('Minimum') + 'Minimum'.Length) | Should -Be ($dateLine.IndexOf('2026-01-05T12:34:56') + '2026-01-05T12:34:56'.Length)
+        ($header.IndexOf('Maximum') + 'Maximum'.Length) | Should -Be ($dateLine.IndexOf('2026-07-02T08:09:10') + '2026-07-02T08:09:10'.Length)
+        $profileRows[0].Minimum.GetType().FullName | Should -Be 'System.DateTime'
+        $profileRows[0].Maximum.GetType().FullName | Should -Be 'System.DateTime'
     }
 
     It 'emits ordinary profile rows with AsRows while the default remains a DataFrame' {

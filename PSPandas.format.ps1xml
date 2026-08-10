@@ -2,6 +2,58 @@
 <Configuration>
   <ViewDefinitions>
     <View>
+      <Name>PSPandas.ProfileRow</Name>
+      <ViewSelectedBy>
+        <TypeName>PSPandas.ProfileRow</TypeName>
+      </ViewSelectedBy>
+      <TableControl>
+        <TableHeaders>
+          <TableColumnHeader><Label>Column</Label><Alignment>Left</Alignment></TableColumnHeader>
+          <TableColumnHeader><Label>Type</Label><Alignment>Left</Alignment></TableColumnHeader>
+          <TableColumnHeader><Label>RowCount</Label><Alignment>Right</Alignment></TableColumnHeader>
+          <TableColumnHeader><Label>NullCount</Label><Alignment>Right</Alignment></TableColumnHeader>
+          <TableColumnHeader><Label>DistinctCount</Label><Alignment>Right</Alignment></TableColumnHeader>
+          <TableColumnHeader><Label>Minimum</Label><Alignment>Right</Alignment></TableColumnHeader>
+          <TableColumnHeader><Label>Maximum</Label><Alignment>Right</Alignment></TableColumnHeader>
+          <TableColumnHeader><Label>Average</Label><Alignment>Right</Alignment></TableColumnHeader>
+          <TableColumnHeader><Label>Sum</Label><Alignment>Right</Alignment></TableColumnHeader>
+          <TableColumnHeader><Label>SampleValues</Label><Alignment>Left</Alignment></TableColumnHeader>
+        </TableHeaders>
+        <TableRowEntries>
+          <TableRowEntry>
+            <TableColumnItems>
+              <TableColumnItem><PropertyName>Column</PropertyName></TableColumnItem>
+              <TableColumnItem><PropertyName>Type</PropertyName></TableColumnItem>
+              <TableColumnItem><PropertyName>RowCount</PropertyName></TableColumnItem>
+              <TableColumnItem><PropertyName>NullCount</PropertyName></TableColumnItem>
+              <TableColumnItem><PropertyName>DistinctCount</PropertyName></TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock><![CDATA[
+if ($null -eq $_.Minimum) { return $null }
+if ($_.Type -eq 'DateOnly') { return $_.Minimum.ToString('yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture) }
+if ($_.Type -eq 'DateTime') { return $_.Minimum.ToString('yyyy-MM-ddTHH:mm:ss', [Globalization.CultureInfo]::InvariantCulture) }
+if ($_.Type -eq 'DateTimeOffset') { return $_.Minimum.ToString('yyyy-MM-ddTHH:mm:sszzz', [Globalization.CultureInfo]::InvariantCulture) }
+return $_.Minimum
+                ]]></ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock><![CDATA[
+if ($null -eq $_.Maximum) { return $null }
+if ($_.Type -eq 'DateOnly') { return $_.Maximum.ToString('yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture) }
+if ($_.Type -eq 'DateTime') { return $_.Maximum.ToString('yyyy-MM-ddTHH:mm:ss', [Globalization.CultureInfo]::InvariantCulture) }
+if ($_.Type -eq 'DateTimeOffset') { return $_.Maximum.ToString('yyyy-MM-ddTHH:mm:sszzz', [Globalization.CultureInfo]::InvariantCulture) }
+return $_.Maximum
+                ]]></ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem><PropertyName>Average</PropertyName></TableColumnItem>
+              <TableColumnItem><PropertyName>Sum</PropertyName></TableColumnItem>
+              <TableColumnItem><PropertyName>SampleValues</PropertyName></TableColumnItem>
+            </TableColumnItems>
+          </TableRowEntry>
+        </TableRowEntries>
+      </TableControl>
+    </View>
+    <View>
       <Name>PSPandas.DataFrame</Name>
       <ViewSelectedBy>
         <TypeName>PSPandas.DataFrame</TypeName>
@@ -17,7 +69,7 @@ if ($rows.Count -eq 0) {
     'PSPandas.DataFrame (0 rows; columns: {0})' -f ($_.Columns -join ', ')
 } elseif (@($_.PSTypeNames) -contains 'PSPandas.Profile') {
     $rows |
-        Format-Table -Property Column, Type, RowCount, NullCount, DistinctCount, Minimum, Maximum, Average, Sum, SampleValues -AutoSize |
+        Format-Table -AutoSize |
         Out-String -Width 300
     } elseif ($null -ne $_.PSObject.Properties['Metadata'] -and
           $null -ne $_.Metadata.Pivot -and

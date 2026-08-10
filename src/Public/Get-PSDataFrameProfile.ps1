@@ -10,7 +10,8 @@ function Get-PSDataFrameProfile {
     non-null values are compatible. Mixed, empty, and all-null columns remain
     profileable without throwing. A file path uses PSPandas' native typed
     delimited reader; no external PSFlatFile dependency or untyped Import-Csv
-    fallback is used.
+    fallback is used. An HTTP or HTTPS URI is downloaded and passed through
+    the same reader.
 
     .PARAMETER DataFrame
     PSPandas DataFrame received from the pipeline and profiled in memory.
@@ -23,6 +24,14 @@ function Get-PSDataFrameProfile {
 
     .PARAMETER Path
     Path to a common delimited file read through PSPandas' native typed reader.
+
+    .PARAMETER Uri
+    Absolute HTTP or HTTPS URI downloaded and read through the native typed
+    reader.
+
+    .PARAMETER TimeoutSec
+    Maximum number of seconds allowed for an HTTP or HTTPS download. The
+    default is 30 seconds.
 
     .PARAMETER Schema
     Optional schema for native delimited-file type conversion.
@@ -40,6 +49,9 @@ function Get-PSDataFrameProfile {
     Describe .\orders.csv
 
     .EXAMPLE
+    Describe -Uri 'https://example.com/orders.csv' -AsRows
+
+    .EXAMPLE
     $data | Describe -AsRows | Where-Object Type -eq 'DateTime'
 
     .EXAMPLE
@@ -53,21 +65,24 @@ function Get-PSDataFrameProfile {
     param(
         [Parameter(Mandatory, ValueFromPipeline = $true, ParameterSetName = 'DataFrame')]$DataFrame,
         [Parameter(Mandatory, Position = 0, ParameterSetName = 'Path')][string]$Path,
+        [Parameter(Mandatory, Position = 0, ParameterSetName = 'Uri')][uri]$Uri,
+        [Parameter(ParameterSetName = 'Uri')][ValidateRange(1, 600)][int]$TimeoutSec = 30,
         [ValidateRange(0, 100)][int]$SampleCount = 3,
         [switch]$AsRows,
-        [Parameter(ParameterSetName = 'Path')][AllowNull()][object]$Schema,
-        [Parameter(ParameterSetName = 'Path')][ValidateRange(1, 1000000)][int]$SampleSize = 100,
-        [Parameter(ParameterSetName = 'Path')][ValidateSet('Auto', 'Present', 'None')][string]$HeaderMode = 'Auto',
-        [Parameter(ParameterSetName = 'Path')][ValidateSet('Header', 'Generic')][string]$NameMode = 'Header'
+        [Parameter(ParameterSetName = 'Path')][Parameter(ParameterSetName = 'Uri')][AllowNull()][object]$Schema,
+        [Parameter(ParameterSetName = 'Path')][Parameter(ParameterSetName = 'Uri')][ValidateRange(1, 1000000)][int]$SampleSize = 100,
+        [Parameter(ParameterSetName = 'Path')][Parameter(ParameterSetName = 'Uri')][ValidateSet('Auto', 'Present', 'None')][string]$HeaderMode = 'Auto',
+        [Parameter(ParameterSetName = 'Path')][Parameter(ParameterSetName = 'Uri')][ValidateSet('Header', 'Generic')][string]$NameMode = 'Header'
     )
     process {
-        if ($PSCmdlet.ParameterSetName -eq 'Path') {
+        if ($PSCmdlet.ParameterSetName -in @('Path', 'Uri')) {
             $readerParameters = @{
-                Path       = $Path
                 SampleSize = $SampleSize
                 HeaderMode = $HeaderMode
                 NameMode   = $NameMode
             }
+            if ($PSCmdlet.ParameterSetName -eq 'Uri') { $readerParameters.Uri = $Uri } else { $readerParameters.Path = $Path }
+            if ($PSCmdlet.ParameterSetName -eq 'Uri') { $readerParameters.TimeoutSec = $TimeoutSec }
             if ($PSBoundParameters.ContainsKey('Schema')) {
                 $readerParameters.Schema = $Schema
             }
@@ -85,7 +100,12 @@ function Get-PSDataFrameProfile {
         )
         $profileRows = [System.Collections.Generic.List[object]]::new()
 
+        $columnCount = @($sourceDataFrame.Columns).Count
+        $columnIndex = 0
+        Write-PSPandasProgress -Enabled -Activity 'PSPandas profile' -Status "Profiling 0 of $columnCount columns" -PercentComplete 0 -Id 4
         foreach ($column in $sourceDataFrame.Columns) {
+            $columnIndex++
+            Write-PSPandasProgress -Enabled -Activity 'PSPandas profile' -Status "Profiling column $columnIndex of ${columnCount}: $column" -PercentComplete ([int](90 * ($columnIndex / [Math]::Max(1, $columnCount)))) -Id 4
             $rawValues = [System.Collections.Generic.List[object]]::new()
             foreach ($row in @($sourceDataFrame.Rows)) {
                 [void]$rawValues.Add((Get-PSPandasPropertyValue -InputObject $row -Name $column))
@@ -191,7 +211,7 @@ function Get-PSDataFrameProfile {
                 $latest = $maximum
             }
 
-            [void]$profileRows.Add([pscustomobject][ordered]@{
+            $profileRow = [pscustomobject][ordered]@{
                 Column        = $column
                 Type          = $type
                 RowCount      = $rawValues.Count
@@ -204,11 +224,18 @@ function Get-PSDataFrameProfile {
                 SampleValues  = [object[]]$samples.ToArray()
                 Earliest      = $earliest
                 Latest        = $latest
-            })
+            }
+            [void]$profileRow.PSTypeNames.Insert(0, 'PSPandas.ProfileRow')
+            [void]$profileRows.Add($profileRow)
         }
+
+        Write-PSPandasProgress -Enabled -Activity 'PSPandas profile' -Status 'Profile complete' -PercentComplete 100 -Id 4 -Completed
 
         $profileFrame = New-PSPandasDataFrameObject -Rows $profileRows.ToArray() -Columns $profileColumns
         [void]$profileFrame.PSTypeNames.Insert(0, 'PSPandas.Profile')
+        foreach ($profileRow in @($profileFrame.Rows)) {
+            [void]$profileRow.PSTypeNames.Insert(0, 'PSPandas.ProfileRow')
+        }
 
         if ($AsRows) {
             foreach ($profileRow in @($profileFrame.Rows)) {

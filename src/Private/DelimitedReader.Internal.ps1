@@ -463,6 +463,8 @@ function Import-PSPandasNativeDelimitedFile {
         [ValidateSet('Header', 'Generic')][string]$NameMode = 'Header'
     )
 
+    Write-PSPandasProgress -Enabled -Activity 'PSPandas import' -Status 'Reading source records' -PercentComplete 5 -Id 1
+
     $extension = [System.IO.Path]::GetExtension($Path).ToLowerInvariant()
     $supportedExtensions = @('.csv', '.tsv', '.tab', '.psv', '.txt', '.dat', '.del', '.log')
     if ($extension -and $extension -notin $supportedExtensions) {
@@ -474,6 +476,7 @@ function Import-PSPandasNativeDelimitedFile {
     if ($allLines.Count -eq 0) { throw [System.IO.InvalidDataException]::new("File '$Path' does not contain any nonempty records.") }
 
     $sampleLines = @($allLines | Select-Object -First $SampleSize)
+    Write-PSPandasProgress -Enabled -Activity 'PSPandas import' -Status "Inferring delimiter and headers ($($allLines.Count) records)" -PercentComplete 20 -Id 1
     $schemaInfo = $null
     if ($PSBoundParameters.ContainsKey('Schema')) {
         $schemaInfo = ConvertTo-PSPandasNativeDelimitedSchema -Schema $Schema
@@ -538,6 +541,8 @@ function Import-PSPandasNativeDelimitedFile {
         }
     }
 
+    Write-PSPandasProgress -Enabled -Activity 'PSPandas import' -Status "Converting $($allRows.Count) records" -PercentComplete 45 -Id 1
+
     $startRow = if ($headerPresent) { 1 } else { 0 }
     $outputRows = [System.Collections.Generic.List[object]]::new()
     for ($rowIndex = $startRow; $rowIndex -lt $allRows.Count; $rowIndex++) {
@@ -547,6 +552,12 @@ function Import-PSPandasNativeDelimitedFile {
             $ordered[$field.Name] = ConvertTo-PSPandasNativeCell -Text $text -Field $field -LineNumber ($rowIndex + 1)
         }
         [void]$outputRows.Add([pscustomobject]$ordered)
+        if (($rowIndex - $startRow + 1) -eq ($allRows.Count - $startRow) -or (($rowIndex - $startRow + 1) % 100 -eq 0)) {
+            $totalDataRows = [Math]::Max(1, $allRows.Count - $startRow)
+            $percent = 45 + [int](45 * (($rowIndex - $startRow + 1) / $totalDataRows))
+            Write-PSPandasProgress -Enabled -Activity 'PSPandas import' -Status "Converted $($rowIndex - $startRow + 1) of $totalDataRows records" -PercentComplete $percent -Id 1
+        }
     }
+    Write-PSPandasProgress -Enabled -Activity 'PSPandas import' -Status 'Import complete' -PercentComplete 100 -Id 1 -Completed
     $outputRows.ToArray()
 }

@@ -269,6 +269,32 @@ $orders = Import-PSDataFrame D:\sales.csv
 $orders | Describe
 ```
 
+HTTP and HTTPS delimited sources use the explicit `-Uri` parameter and the
+same native delimiter, header, schema, and type inference. Standard GitHub
+`github.com/{owner}/{repo}/blob/{branch}/{path}` links are translated to their
+raw download URL automatically:
+
+```powershell
+$orders = Import-PSDataFrame -Uri 'https://example.com/data/orders.csv'
+$orders | Describe
+
+ConvertTo-PSDataFrame -Uri 'https://example.com/data/orders.csv' | Describe
+Describe -Uri 'https://example.com/data/orders.csv' -AsRows
+Describe -Uri 'https://github.com/dfinke/PSKit/blob/master/data/baseball.csv' -AsRows
+```
+
+URI input currently supports public HTTP/HTTPS resources. Authentication
+headers, credential forwarding, caching, and cloud-specific URI schemes are
+deliberately left for a later source-connection surface. Downloads have a
+bounded 30-second timeout by default; use `-TimeoutSec` on URI commands to
+choose a value from 1 to 600 seconds. HTML pages are rejected clearly when a
+data file was expected. File and URI imports, `Describe`, `Pivot`, and
+`Crosstab` report meaningful phases automatically with throttled PowerShell
+progress; use the standard `-ProgressAction SilentlyContinue` (or
+`$ProgressPreference`) when quiet automation is preferred. On PowerShell 7.5.0
+hosts where common-parameter binding misbehaves for script functions,
+`$ProgressPreference = 'SilentlyContinue'` is the equivalent suppression path.
+
 For Excel workbooks, import the optional ImportExcel module. Omit `-WorksheetName` to read the first worksheet, or provide it explicitly:
 
 ```powershell
@@ -407,11 +433,11 @@ mock data only. Run them from the project folder, for example:
 
 ## Supported functionality
 
-- `Import-PSDataFrame`: read supported delimited files through PSPandas' native typed reader or `.xlsx`/`.xlsm` worksheets through the optional ImportExcel module. Excel imports use the first worksheet by default or the worksheet named by `-WorksheetName`; unsupported file extensions fail clearly.
+- `Import-PSDataFrame`: read supported delimited files through PSPandas' native typed reader, including HTTP/HTTPS `-Uri` sources, or `.xlsx`/`.xlsm` worksheets through the optional ImportExcel module. Excel imports use the first worksheet by default or the worksheet named by `-WorksheetName`; unsupported file extensions fail clearly. File and URI imports show automatic throttled progress that can be suppressed with the standard `-ProgressAction` common parameter.
 - `Import-PSDataFrame -AsWorkbook`: return an Excel workbook object whose ordered worksheets are independently accessible through direct tab-completable properties or `.Worksheets` indexing.
-- `ConvertTo-PSDataFrame` / `ctdf`: collect ordinary pipeline objects into a frame; explicit columns can define an empty or stable schema. `-ColumnData` transposes equally sized, ordered column vectors into rows without scalar broadcasting. A delimited file path also uses the native typed reader.
+- `ConvertTo-PSDataFrame` / `ctdf`: collect ordinary pipeline objects into a frame; explicit columns can define an empty or stable schema. `-ColumnData` transposes equally sized, ordered column vectors into rows without scalar broadcasting. A delimited file path or HTTP/HTTPS `-Uri` also uses the native typed reader.
 - `ConvertFrom-PSDataFrame`: emit frame rows as ordinary PowerShell objects for existing commands, CSV writers, SQL clients, or later integrations.
-- `Get-PSDataFrameProfile` / `Describe`: return one profile row per column with type, row/null/distinct counts, samples, numeric summaries, and typed numeric or DateTime-like bounds, including DateOnly. `-AsRows` emits ordinary profile-row objects for direct pipeline filtering.
+- `Get-PSDataFrameProfile` / `Describe`: return one profile row per column with type, row/null/distinct counts, samples, numeric summaries, and typed numeric or DateTime-like bounds, including DateOnly. `-AsRows` emits ordinary profile-row objects for direct pipeline filtering. Both path and HTTP/HTTPS `-Uri` input are supported, with automatic throttled progress suppressible through `-ProgressAction`.
 - `Get-PSDataFrameInfo`, `Get-PSDataFrameColumn`, `Get-PSDataFrameHead`, and `Get-PSDataFrameTail`: inspect schema, size, columns, and leading or trailing rows.
 - `Find-PSDataFrame`: filter rows with a `Where-Object`-style scriptblock. `Where-PSDataFrame` remains as a compatibility alias.
 - `Select-PSDataFrame`: select and reorder existing columns.
@@ -419,8 +445,8 @@ mock data only. Run them from the project folder, for example:
 - `Add-PSDataFrameColumn`: add a calculated column; the expression receives the current row through `$_` and its first argument.
 - `Group-PSDataFrame`: produce stable, first-seen groups with key, rows, count, and a group frame.
 - `Measure-PSDataFrame`: aggregate globally or by key. Aggregate specifications may be scriptblocks, property names (sum by default), or `@{ Property = 'Amount'; Function = 'Sum' }` hashtables. For non-count hashtable specifications that omit `Property`, the aggregate output name is used as the source property name. Built-ins include Count, Sum, Average, Min, and Max. `Summarize` is a concise alias for the friendly parameter surface, and `Summarize-PSDataFrame` remains as a compatibility alias.
-- `ConvertTo-PSDataFrameWide` / `Pivot`: reshape one or more column dimensions into ordered output columns. Supports multiple index dimensions, multiple values, uniform or per-value aggregates, advanced named/scriptblock aggregates, fill values, sorting, margins, uniqueness validation, structured pivot metadata, an optional hierarchical `-Outline` report view, and opt-in `-Grid` borders.
-- `ConvertTo-PSDataFrameCrosstab` / `Crosstab` / `xtab`: count combinations of one or more index and column dimensions, returning integer frequency cells with zero-filled absent combinations by default, optional All/Index/Columns normalization and typed percentage points via `-Percent`, margins, custom fill values, sorting, and outline/grid reports.
+- `ConvertTo-PSDataFrameWide` / `Pivot`: reshape one or more column dimensions into ordered output columns. Supports multiple index dimensions, multiple values, uniform or per-value aggregates, advanced named/scriptblock aggregates, fill values, sorting, margins, uniqueness validation, structured pivot metadata, an optional hierarchical `-Outline` report view, and optional `-Grid` borders. Pivot reports show automatic throttled progress suppressible through `-ProgressAction`.
+- `ConvertTo-PSDataFrameCrosstab` / `Crosstab` / `xtab`: count combinations of one or more index and column dimensions, returning integer frequency cells with zero-filled absent combinations by default, optional All/Index/Columns normalization and typed percentage points via `-Percent`, margins, custom fill values, sorting, and outline/grid reports. Crosstab reports show automatic throttled progress suppressible through `-ProgressAction`.
 - `ConvertTo-PSDataFrameConcat` / `Concat`: append rows from multiple frames, unioning columns in first-seen order and filling absent values with `$null`.
 - `Join-PSDataFrame`: inner, left, right, and full joins on one or more keys. Non-key collisions receive `_left` and `_right` suffixes by default.
 

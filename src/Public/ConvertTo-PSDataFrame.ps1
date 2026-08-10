@@ -8,8 +8,8 @@ function ConvertTo-PSDataFrame {
     supported. An explicit column list can define an empty or stable schema.
     Column-oriented data can be supplied explicitly as a dictionary whose keys
     are column names and whose equally sized values are vectors.
-    A file path uses PSPandas' native typed delimited reader; no external
-    PSFlatFile dependency or untyped Import-Csv fallback is required.
+    A file path or HTTP/HTTPS URI uses PSPandas' native typed delimited reader;
+    no external PSFlatFile dependency or untyped Import-Csv fallback is required.
 
     .PARAMETER InputObject
     Ordinary objects, dictionaries, or existing PSPandas DataFrames collected
@@ -22,6 +22,14 @@ function ConvertTo-PSDataFrame {
 
     .PARAMETER Path
     Path to a common delimited file read through PSPandas' native typed reader.
+
+    .PARAMETER Uri
+    Absolute HTTP or HTTPS URI downloaded and read through the native typed
+    reader.
+
+    .PARAMETER TimeoutSec
+    Maximum number of seconds allowed for an HTTP or HTTPS download. The
+    default is 30 seconds.
 
     .PARAMETER Schema
     Optional schema for native delimited-file type conversion.
@@ -46,6 +54,9 @@ function ConvertTo-PSDataFrame {
     ConvertTo-PSDataFrame .\orders.csv
 
     .EXAMPLE
+    ConvertTo-PSDataFrame -Uri 'https://example.com/orders.csv'
+
+    .EXAMPLE
     ConvertTo-PSDataFrame -ColumnData ([ordered]@{
         age   = 17, 19, 21
         score = 12, 10, 11
@@ -60,12 +71,15 @@ function ConvertTo-PSDataFrame {
         [Parameter(ValueFromPipeline = $true, ParameterSetName = 'InputObject')][AllowNull()][object]$InputObject,
         [Parameter(Mandatory, ParameterSetName = 'ColumnData')][System.Collections.IDictionary]$ColumnData,
         [Parameter(Mandatory, Position = 0, ParameterSetName = 'Path')][string]$Path,
-        [Parameter(ParameterSetName = 'Path')][AllowNull()][object]$Schema,
-        [Parameter(ParameterSetName = 'Path')][ValidateRange(1, 1000000)][int]$SampleSize = 100,
-        [Parameter(ParameterSetName = 'Path')][ValidateSet('Auto', 'Present', 'None')][string]$HeaderMode = 'Auto',
-        [Parameter(ParameterSetName = 'Path')][ValidateSet('Header', 'Generic')][string]$NameMode = 'Header',
+        [Parameter(Mandatory, Position = 0, ParameterSetName = 'Uri')][uri]$Uri,
+        [Parameter(ParameterSetName = 'Uri')][ValidateRange(1, 600)][int]$TimeoutSec = 30,
+        [Parameter(ParameterSetName = 'Path')][Parameter(ParameterSetName = 'Uri')][AllowNull()][object]$Schema,
+        [Parameter(ParameterSetName = 'Path')][Parameter(ParameterSetName = 'Uri')][ValidateRange(1, 1000000)][int]$SampleSize = 100,
+        [Parameter(ParameterSetName = 'Path')][Parameter(ParameterSetName = 'Uri')][ValidateSet('Auto', 'Present', 'None')][string]$HeaderMode = 'Auto',
+        [Parameter(ParameterSetName = 'Path')][Parameter(ParameterSetName = 'Uri')][ValidateSet('Header', 'Generic')][string]$NameMode = 'Header',
         [Parameter(ParameterSetName = 'InputObject')]
         [Parameter(ParameterSetName = 'Path')]
+        [Parameter(ParameterSetName = 'Uri')]
         [string[]]$Columns
     )
     begin { $items = [System.Collections.Generic.List[object]]::new() }
@@ -86,19 +100,29 @@ function ConvertTo-PSDataFrame {
             return
         }
 
-        if ($PSCmdlet.ParameterSetName -eq 'Path') {
+        if ($PSCmdlet.ParameterSetName -in @('Path', 'Uri')) {
+            $temporaryPath = $null
+            $sourcePath = $Path
+            if ($PSCmdlet.ParameterSetName -eq 'Uri') {
+                $temporaryPath = Save-PSPandasUriToTemporaryFile -Uri $Uri -TimeoutSec $TimeoutSec
+                $sourcePath = $temporaryPath
+            }
             $readerParameters = @{
-                Path       = $Path
+                Path       = $sourcePath
                 SampleSize = $SampleSize
                 HeaderMode = $HeaderMode
                 NameMode   = $NameMode
             }
-            if ($PSBoundParameters.ContainsKey('Schema')) {
-                $readerParameters.Schema = $Schema
+            try {
+                if ($PSBoundParameters.ContainsKey('Schema')) {
+                    $readerParameters.Schema = $Schema
+                }
+                $typedRows = @(Import-PSPandasTypedFile @readerParameters)
+                New-PSPandasDataFrameObject -Rows $typedRows -Columns $Columns
+                return
+            } finally {
+                if ($null -ne $temporaryPath) { Remove-Item -LiteralPath $temporaryPath -Force -ErrorAction SilentlyContinue }
             }
-            $typedRows = @(Import-PSPandasTypedFile @readerParameters)
-            New-PSPandasDataFrameObject -Rows $typedRows -Columns $Columns
-            return
         }
 
         New-PSPandasDataFrameObject -Rows $items.ToArray() -Columns $Columns

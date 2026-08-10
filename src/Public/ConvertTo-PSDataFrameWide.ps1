@@ -171,8 +171,12 @@ function ConvertTo-PSDataFrameWide {
         $categoryInfo = [System.Collections.Generic.Dictionary[string, object]]::new([System.StringComparer]::Ordinal)
         $categoryOrder = [System.Collections.Generic.List[string]]::new()
         $allRows = [System.Collections.Generic.List[object]]::new()
+        $inputRows = @($DataFrame.Rows)
+        $inputRowIndex = 0
+        Write-PSPandasProgress -Enabled -Activity 'PSPandas pivot' -Status "Grouping 0 of $($inputRows.Count) rows" -PercentComplete 0 -Id 5
 
-        foreach ($row in @($DataFrame.Rows)) {
+        foreach ($row in $inputRows) {
+            $inputRowIndex++
             [void]$allRows.Add($row)
             $indexValues = [object[]]@($Index | ForEach-Object { Get-PSPandasPropertyValue -InputObject $row -Name $_ })
             $categoryValues = [object[]]@($Columns | ForEach-Object { Get-PSPandasPropertyValue -InputObject $row -Name $_ })
@@ -203,7 +207,12 @@ function ConvertTo-PSDataFrameWide {
                 [void]$categoryOrder.Add($categoryKey)
             }
             [void]$categoryInfo[$categoryKey].Rows.Add($row)
+            if ($inputRowIndex -eq $inputRows.Count -or $inputRowIndex % 100 -eq 0) {
+                Write-PSPandasProgress -Enabled -Activity 'PSPandas pivot' -Status "Grouped $inputRowIndex of $($inputRows.Count) rows" -PercentComplete ([int](45 * ($inputRowIndex / [Math]::Max(1, $inputRows.Count)))) -Id 5
+            }
         }
+
+        Write-PSPandasProgress -Enabled -Activity 'PSPandas pivot' -Status 'Building pivot output' -PercentComplete 50 -Id 5
 
         $categoryLabels = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::OrdinalIgnoreCase)
         foreach ($categoryKey in $categoryOrder) {
@@ -281,7 +290,9 @@ function ConvertTo-PSDataFrameWide {
         }
 
         $resultRows = [System.Collections.Generic.List[object]]::new()
+        $resultRowIndex = 0
         foreach ($indexKey in $indexOrder) {
+            $resultRowIndex++
             $group = $indexGroups[$indexKey]
             $ordered = [ordered]@{}
             for ($indexPosition = 0; $indexPosition -lt $Index.Count; $indexPosition++) {
@@ -304,6 +315,9 @@ function ConvertTo-PSDataFrameWide {
                 }
             }
             [void]$resultRows.Add([pscustomobject]$ordered)
+            if ($resultRowIndex -eq $indexOrder.Count -or $resultRowIndex % 50 -eq 0) {
+                Write-PSPandasProgress -Enabled -Activity 'PSPandas pivot' -Status "Built $resultRowIndex of $($indexOrder.Count) output rows" -PercentComplete ([int](50 + (45 * ($resultRowIndex / [Math]::Max(1, $indexOrder.Count))))) -Id 5
+            }
         }
 
         if ($Margins -and $Index.Count -gt 0 -and $allRows.Count -gt 0) {
@@ -337,6 +351,7 @@ function ConvertTo-PSDataFrameWide {
             Layout         = if ($Outline) { 'Outline' } else { 'Table' }
             Grid           = [bool]$Grid
         }
+        Write-PSPandasProgress -Enabled -Activity 'PSPandas pivot' -Status 'Pivot complete' -PercentComplete 100 -Id 5 -Completed
         New-PSPandasDataFrameObject -Rows ([object[]]$resultRows.ToArray()) -Columns ([string[]]$outputColumns.ToArray()) -Metadata ([ordered]@{ Pivot = $pivotMetadata })
     }
 }
