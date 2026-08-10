@@ -308,15 +308,7 @@ Describe 'PSPandas profiling' {
         $profileRow.Latest | Should -Be $profileRow.Maximum
     }
 
-    It 'uses the typed file reader for direct path input when PSFlatFile is available' {
-        $projectRoot = Split-Path (Resolve-Path $modulePath) -Parent
-        $readerManifest = Join-Path (Split-Path $projectRoot -Parent) 'PSFlatFile\PSFlatFile.psd1'
-        if (-not (Test-Path -LiteralPath $readerManifest)) {
-            Set-ItResult -Skipped -Because 'PSFlatFile is not available beside the PSPandas repository.'
-            return
-        }
-
-        Import-Module $readerManifest -Force
+    It 'uses the native reader for direct path input without PSFlatFile' {
         $path = Join-Path $TestDrive 'typed-orders.csv'
         @(
             'OrderDate,Amount'
@@ -334,15 +326,7 @@ Describe 'PSPandas profiling' {
         $profileRow.Maximum | Should -Be ([System.DateOnly]::new(2026, 7, 2))
     }
 
-    It 'imports a typed flat file through Import-PSDataFrame' {
-        $projectRoot = Split-Path (Resolve-Path $modulePath) -Parent
-        $readerManifest = Join-Path (Split-Path $projectRoot -Parent) 'PSFlatFile\PSFlatFile.psd1'
-        if (-not (Test-Path -LiteralPath $readerManifest)) {
-            Set-ItResult -Skipped -Because 'PSFlatFile is not available beside the PSPandas repository.'
-            return
-        }
-
-        Import-Module $readerManifest -Force
+    It 'imports a typed flat file through Import-PSDataFrame without PSFlatFile' {
         $path = Join-Path $TestDrive 'import-psdataframe.csv'
         @(
             'Region,Units,OrderDate'
@@ -356,6 +340,53 @@ Describe 'PSPandas profiling' {
         $imported.Rows[0].Units.GetType().FullName | Should -Be 'System.Int32'
         $imported.Rows[0].OrderDate.GetType().FullName | Should -Be 'System.DateOnly'
         @($imported.Rows).Count | Should -Be 2
+    }
+
+    It 'reads the RetailOrders fixture with native practical types' {
+        $projectRoot = Split-Path (Resolve-Path $modulePath) -Parent
+        $retailPath = Join-Path $projectRoot 'examples\data\RetailOrders.csv'
+        $retail = ConvertTo-PSDataFrame $retailPath
+
+        @($retail.Rows).Count | Should -Be 144
+        $retail.Rows[0].'Row ID'.GetType().FullName | Should -Be 'System.Int32'
+        $retail.Rows[0].Quantity.GetType().FullName | Should -Be 'System.Int32'
+        $retail.Rows[0].'Postal Code'.GetType().FullName | Should -Be 'System.Int32'
+        $retail.Rows[0].'Order Date'.GetType().FullName | Should -Be 'System.DateOnly'
+        $retail.Rows[0].'Ship Date'.GetType().FullName | Should -Be 'System.DateOnly'
+        $retail.Rows[0].Sales.GetType().FullName | Should -Be 'System.Decimal'
+        $retail.Rows[0].Discount.GetType().FullName | Should -Be 'System.Decimal'
+        $retail.Rows[0].Profit.GetType().FullName | Should -Be 'System.Decimal'
+    }
+
+    It 'supports native TSV, explicit schema, generic names, and typed nulls' {
+        $path = Join-Path $TestDrive 'native.tsv'
+        @(
+            "Name`tUnits`tActive`tWhen`tAmount"
+            "Alpha`t2`ttrue`t2026-01-05T10:30:00`t10.50"
+            "Beta`t`tfalse`t2026-01-06T11:45:00`t"
+        ) | Set-Content -LiteralPath $path
+
+        $frame = ConvertTo-PSDataFrame $path -NameMode Generic
+        ($frame.Columns -join ',') | Should -Be 'P1,P2,P3,P4,P5'
+        $frame.Rows[0].P2.GetType().FullName | Should -Be 'System.Int32'
+        $frame.Rows[0].P3.GetType().FullName | Should -Be 'System.Boolean'
+        $frame.Rows[0].P4.GetType().FullName | Should -Be 'System.DateTime'
+        $frame.Rows[1].P2 | Should -Be $null
+        $frame.Rows[1].P5 | Should -Be $null
+
+        $schemaFrame = ConvertTo-PSDataFrame $path -Schema ([ordered]@{
+            Name = 'String'; Units = 'Int32'; Active = 'Boolean'; When = 'DateTime'; Amount = 'Decimal'
+        })
+        $schemaFrame.Rows[0].Amount.GetType().FullName | Should -Be 'System.Decimal'
+        $schemaFrame.Rows[1].Units | Should -Be $null
+    }
+
+    It 'rejects unsupported native file extensions clearly' {
+        $path = Join-Path $TestDrive 'data.json'
+        '{"Region":"East"}' | Set-Content -LiteralPath $path
+        { ConvertTo-PSDataFrame $path } | Should -Throw "*Unsupported delimited file extension '*.json'*"
+        { Import-PSDataFrame $path } | Should -Throw "*Unsupported delimited file extension '*.json'*"
+        { Get-PSDataFrameProfile $path -AsRows } | Should -Throw "*Unsupported delimited file extension '*.json'*"
     }
 
     It 'validates Import-PSDataFrame file-type-specific parameters' {

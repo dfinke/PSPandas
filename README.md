@@ -260,10 +260,9 @@ Outline display sorts the index hierarchy, prints each primary value once, and u
 
 ## Data profiling
 
-`Import-PSDataFrame` is the file-oriented entry point. It uses PSFlatFile's typed reader for CSV, TSV, and other supported flat files. Import PSFlatFile first:
+`Import-PSDataFrame` is the file-oriented entry point. PSPandas includes a native typed reader for common CSV, TSV, PSV, TAB, TXT, DAT, DEL, and LOG files:
 
 ```powershell
-Import-Module PSFlatFile
 Import-Module ./PSPandas.psd1 -Force
 
 $orders = Import-PSDataFrame D:\sales.csv
@@ -318,7 +317,6 @@ Run `& ./examples/WorkbookStandalone.ps1` for the standalone path and `& ./examp
 `Get-PSDataFrameProfile` is the canonical profiling command; `Describe` is its concise alias. Both commands can also take a file path directly and use the same typed reader:
 
 ```powershell
-Import-Module PSFlatFile
 Import-Module ./PSPandas.psd1 -Force
 
 Describe D:\sales.csv
@@ -333,10 +331,10 @@ The constructor supports the same path workflow for compatibility:
 ConvertTo-PSDataFrame D:\sales.csv | Describe
 ```
 
-Path input uses `Import-FlatFile` for type inference and does not silently fall back to `Import-Csv`. If `Import-FlatFile` is unavailable, PSPandas fails with an actionable error. The pipeline form remains available for ordinary objects:
+Path input uses PSPandas' native reader for delimiter, header, names, and practical type inference; it does not silently fall back to `Import-Csv`. The pipeline form remains available for ordinary objects:
 
 ```powershell
-$data = Import-FlatFile .\orders.csv | ConvertTo-PSDataFrame
+$data = Import-PSDataFrame .\orders.csv
 $profile = $data | Describe -SampleCount 3
 $profile
 ```
@@ -392,9 +390,9 @@ Run the complete examples from the project folder with:
 
 ## Supported functionality
 
-- `Import-PSDataFrame`: read supported flat files through PSFlatFile's typed `Import-FlatFile` reader or `.xlsx`/`.xlsm` worksheets through the optional ImportExcel module. Excel imports use the first worksheet by default or the worksheet named by `-WorksheetName`. The relevant reader module must be imported or installed separately.
+- `Import-PSDataFrame`: read supported delimited files through PSPandas' native typed reader or `.xlsx`/`.xlsm` worksheets through the optional ImportExcel module. Excel imports use the first worksheet by default or the worksheet named by `-WorksheetName`; unsupported file extensions fail clearly.
 - `Import-PSDataFrame -AsWorkbook`: return an Excel workbook object whose ordered worksheets are independently accessible through direct tab-completable properties or `.Worksheets` indexing.
-- `ConvertTo-PSDataFrame` / `ctdf`: collect ordinary pipeline objects into a frame; explicit columns can define an empty or stable schema. `-ColumnData` transposes equally sized, ordered column vectors into rows without scalar broadcasting. A file path also delegates to the typed reader for compatibility.
+- `ConvertTo-PSDataFrame` / `ctdf`: collect ordinary pipeline objects into a frame; explicit columns can define an empty or stable schema. `-ColumnData` transposes equally sized, ordered column vectors into rows without scalar broadcasting. A delimited file path also uses the native typed reader.
 - `ConvertFrom-PSDataFrame`: emit frame rows as ordinary PowerShell objects for existing commands, CSV writers, SQL clients, or later integrations.
 - `Get-PSDataFrameProfile` / `Describe`: return one profile row per column with type, row/null/distinct counts, samples, numeric summaries, and typed numeric or DateTime-like bounds, including DateOnly. `-AsRows` emits ordinary profile-row objects for direct pipeline filtering.
 - `Get-PSDataFrameInfo`, `Get-PSDataFrameColumn`, `Get-PSDataFrameHead`, and `Get-PSDataFrameTail`: inspect schema, size, columns, and leading or trailing rows.

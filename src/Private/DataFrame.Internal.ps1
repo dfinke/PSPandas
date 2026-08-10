@@ -188,26 +188,26 @@ function ConvertTo-PSPandasColumnDataShape {
 function Import-PSPandasTypedFile {
     <#
     .SYNOPSIS
-    Reads a flat file through PSFlatFile's typed reader.
+    Reads a flat file through PSPandas' native typed delimited-file reader.
 
     .DESCRIPTION
-    Resolves Import-FlatFile, forwards inference options, and wraps reader
-    failures with PSPandas path context. No untyped CSV fallback is used.
+    Supports common comma, pipe, semicolon, and tab-delimited files without a
+    runtime dependency on PSFlatFile or Import-Csv.
 
     .PARAMETER Path
     Existing flat-file path to read.
 
     .PARAMETER Schema
-    Optional schema forwarded to Import-FlatFile.
+    Optional native delimited schema.
 
     .PARAMETER SampleSize
-    Maximum number of nonempty lines used for type inference.
+    Maximum number of nonempty records used for inference.
 
     .PARAMETER HeaderMode
-    Header-detection mode forwarded to Import-FlatFile.
+    Header handling mode.
 
     .PARAMETER NameMode
-    Property-naming mode forwarded to Import-FlatFile.
+    Inferred property-name mode.
 
     .OUTPUTS
     System.Object
@@ -221,11 +221,6 @@ function Import-PSPandasTypedFile {
         [ValidateSet('Header', 'Generic')][string]$NameMode = 'Header'
     )
 
-    $reader = Get-Command -Name Import-FlatFile -ErrorAction SilentlyContinue
-    if ($null -eq $reader) {
-        throw "Cannot read '$Path' as a typed PSPandas data source because Import-FlatFile was not found. Import the PSFlatFile module before using file-path input."
-    }
-
     $readerParameters = @{
         Path       = $Path
         SampleSize = $SampleSize
@@ -236,11 +231,7 @@ function Import-PSPandasTypedFile {
         $readerParameters.Schema = $Schema
     }
 
-    try {
-        & $reader @readerParameters
-    } catch {
-        throw "Typed file reader Import-FlatFile failed for '$Path': $($_.Exception.Message)"
-    }
+    Import-PSPandasNativeDelimitedFile @readerParameters
 }
 
 function Import-PSPandasExcelRows {

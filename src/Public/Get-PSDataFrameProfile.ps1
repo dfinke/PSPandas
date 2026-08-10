@@ -8,8 +8,9 @@ function Get-PSDataFrameProfile {
     are counted and omitted from distinct counts, samples, and applicable
     summaries. Numeric and date summaries are populated only when all
     non-null values are compatible. Mixed, empty, and all-null columns remain
-    profileable without throwing. A file path uses the typed Import-FlatFile
-    reader from PSFlatFile; no untyped Import-Csv fallback is used.
+    profileable without throwing. A file path uses PSPandas' native typed
+    delimited reader; no external PSFlatFile dependency or untyped Import-Csv
+    fallback is used.
 
     .PARAMETER DataFrame
     PSPandas DataFrame received from the pipeline and profiled in memory.
@@ -21,22 +22,22 @@ function Get-PSDataFrameProfile {
     Emits ordinary profile-row objects instead of the default profile DataFrame.
 
     .PARAMETER Path
-    Path to a file read through the typed Import-FlatFile reader from PSFlatFile.
+    Path to a common delimited file read through PSPandas' native typed reader.
 
     .PARAMETER Schema
-    Optional schema passed to Import-FlatFile.
+    Optional schema for native delimited-file type conversion.
 
     .PARAMETER SampleSize
-    Maximum number of nonempty file lines used by Import-FlatFile inference.
+    Maximum number of nonempty file lines used by native type inference.
 
     .PARAMETER HeaderMode
-    Header handling passed to Import-FlatFile.
+    Header handling used by native delimited-file inference.
 
     .PARAMETER NameMode
-    Inferred property-name mode passed to Import-FlatFile.
+    Inferred property-name mode used by the native delimited reader.
 
     .EXAMPLE
-    Import-FlatFile .\orders.csv | ConvertTo-PSDataFrame | Describe
+    Describe .\orders.csv
 
     .EXAMPLE
     $data | Describe -AsRows | Where-Object Type -eq 'DateTime'

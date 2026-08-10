@@ -8,8 +8,8 @@ function ConvertTo-PSDataFrame {
     supported. An explicit column list can define an empty or stable schema.
     Column-oriented data can be supplied explicitly as a dictionary whose keys
     are column names and whose equally sized values are vectors.
-    A file path uses the typed Import-FlatFile reader from PSFlatFile; no
-    untyped Import-Csv fallback is used.
+    A file path uses PSPandas' native typed delimited reader; no external
+    PSFlatFile dependency or untyped Import-Csv fallback is required.
 
     .PARAMETER InputObject
     Ordinary objects, dictionaries, or existing PSPandas DataFrames collected
@@ -21,19 +21,19 @@ function ConvertTo-PSDataFrame {
     dictionaries preserve declared column order. Scalars are not broadcast.
 
     .PARAMETER Path
-    Path to a file read through the typed Import-FlatFile reader from PSFlatFile.
+    Path to a common delimited file read through PSPandas' native typed reader.
 
     .PARAMETER Schema
-    Optional schema passed to Import-FlatFile.
+    Optional schema for native delimited-file type conversion.
 
     .PARAMETER SampleSize
-    Maximum number of nonempty file lines used by Import-FlatFile inference.
+    Maximum number of nonempty file lines used by native type inference.
 
     .PARAMETER HeaderMode
-    Header handling passed to Import-FlatFile.
+    Header handling used by native delimited-file inference.
 
     .PARAMETER NameMode
-    Inferred property-name mode passed to Import-FlatFile.
+    Inferred property-name mode used by the native delimited reader.
 
     .PARAMETER Columns
     Optional ordered schema. It defines empty frames and normalizes input rows

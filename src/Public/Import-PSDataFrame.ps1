@@ -1,14 +1,14 @@
 function Import-PSDataFrame {
     <#
     .SYNOPSIS
-    Imports a typed flat file or Excel worksheet as a PSPandas data frame.
+    Imports a typed delimited file or Excel worksheet as a PSPandas data frame.
 
     .DESCRIPTION
-    Reads CSV, TSV, or other supported flat files through Import-FlatFile
-    from PSFlatFile. XLSX and XLSM workbooks use Import-Excel from the
-    optional ImportExcel module. When no worksheet name is supplied, the
-    first worksheet is imported. Use -AsWorkbook to return all worksheets in
-    a workbook object with tab-completable sheet properties.
+    Reads common CSV, TSV, PSV, and other supported delimited files through
+    PSPandas' native typed reader. XLSX and XLSM workbooks use Import-Excel
+    from the optional ImportExcel module. When no worksheet name is supplied,
+    the first worksheet is imported. Use -AsWorkbook to return all worksheets
+    in a workbook object with tab-completable sheet properties.
     Import-PSDataFrame is the file-oriented entry point; use
     ConvertTo-PSDataFrame for ordinary pipeline objects.
 
@@ -16,16 +16,16 @@ function Import-PSDataFrame {
     Path to the file to import.
 
     .PARAMETER Schema
-    Optional schema passed to Import-FlatFile.
+    Optional schema for native delimited-file type conversion.
 
     .PARAMETER SampleSize
-    Maximum number of nonempty file lines used by Import-FlatFile inference.
+    Maximum number of nonempty file lines used by native type inference.
 
     .PARAMETER HeaderMode
-    Header handling passed to Import-FlatFile.
+    Header handling used by native delimited-file inference.
 
     .PARAMETER NameMode
-    Inferred property-name mode passed to Import-FlatFile.
+    Inferred property-name mode used by the native delimited reader.
 
     .PARAMETER WorksheetName
     Worksheet to read from an XLSX or XLSM workbook. When omitted, the first

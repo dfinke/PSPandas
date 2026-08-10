@@ -12,12 +12,6 @@ reports with margins and optional grids.
 
 Import-Module (Join-Path $PSScriptRoot '..\PSPandas.psd1') -Force
 
-$readerManifest = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) 'PSFlatFile\PSFlatFile.psd1'
-if (-not (Test-Path -LiteralPath $readerManifest)) {
-    throw 'This example requires the PSFlatFile repository beside PSPandas.'
-}
-Import-Module $readerManifest -Force
-
 $dataPath = Join-Path $PSScriptRoot 'data\RetailOrders.csv'
 $orders = Import-PSDataFrame $dataPath
 
