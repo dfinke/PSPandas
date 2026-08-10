@@ -369,6 +369,7 @@ Run the complete examples from the project folder with:
 ```powershell
 & ./examples/QuickStart.ps1
 & ./examples/ColumnData.ps1
+& ./examples/ColumnDataVectors.ps1
 & ./examples/SpeakerUtterance.ps1
 & ./examples/Crosstab.ps1
 & ./examples/Concat.ps1
@@ -387,6 +388,22 @@ Run the complete examples from the project folder with:
 & ./examples/Profile.ps1
 & ./examples/RichProfile.ps1
 ```
+
+The `examples/IT-Admin-Examples` folder contains additional synthetic
+administration scenarios: access-log analysis, MFA compliance, endpoint patch
+status, and virtual-machine cost/utilization. Each script is self-contained
+and uses the repository-relative module path. The accompanying CSV files are
+mock data only. Run them from the project folder, for example:
+
+```powershell
+& ./examples/IT-Admin-Examples/Login-Analysis-CSV.ps1
+& ./examples/IT-Admin-Examples/Identity-Governance-MFA-Compliance.ps1
+& ./examples/IT-Admin-Examples/Intune-Endpoint-Patch-Management.ps1
+& ./examples/IT-Admin-Examples/Azure-Cost-Resource-Optimization.ps1
+```
+
+`examples/test.csv` is a minimal CSV fixture for experimenting with
+`Import-PSDataFrame` and native type inference.
 
 ## Supported functionality
 

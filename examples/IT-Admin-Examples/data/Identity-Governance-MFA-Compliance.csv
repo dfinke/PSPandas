@@ -1,0 +1,31 @@
+User_Principal,Job_Title,Risk_Level,MFA_Status,Account_Status
+admin.smith@example.com,IT Admin,High,True,Enabled
+j.doe@example.com,Sales Rep,Low,True,Enabled
+a.garcia@example.com,Developer,Medium,True,Enabled
+m.johnson@example.com,Finance Mgr,High,False,Enabled
+b.brown@example.com,HR Specialist,Low,True,Enabled
+v.patel@example.com,IT Admin,High,True,Enabled
+s.lee@example.com,Sales Rep,Medium,False,Enabled
+t.williams@example.com,Developer,Low,True,Enabled
+k.martinez@example.com,Finance Analyst,Medium,True,Enabled
+j.taylor@example.com,HR Assistant,Low,False,Enabled
+r.harris@example.com,VP Sales,High,False,Enabled
+c.clark@example.com,Developer,Medium,True,Enabled
+l.lewis@example.com,Contractor,High,False,Enabled
+m.young@example.com,Sales Rep,Low,True,Enabled
+e.walker@example.com,IT Admin,High,True,Enabled
+admin.jones@example.com,IT Admin,High,True,Enabled
+j.miller@example.com,Sales Rep,Low,True,Enabled
+a.davis@example.com,Developer,Medium,True,Enabled
+m.rodriguez@example.com,Finance Mgr,High,False,Enabled
+b.wilson@example.com,HR Specialist,Low,True,Enabled
+v.singh@example.com,IT Admin,High,True,Enabled
+s.kim@example.com,Sales Rep,Medium,False,Enabled
+t.thomas@example.com,Developer,Low,True,Enabled
+k.jackson@example.com,Finance Analyst,Medium,True,Enabled
+j.white@example.com,HR Assistant,Low,False,Enabled
+r.lopez@example.com,VP Sales,High,False,Enabled
+c.hill@example.com,Developer,Medium,True,Enabled
+l.scott@example.com,Contractor,High,False,Enabled
+m.green@example.com,Sales Rep,Low,True,Enabled
+e.adams@example.com,IT Admin,High,True,Enabled

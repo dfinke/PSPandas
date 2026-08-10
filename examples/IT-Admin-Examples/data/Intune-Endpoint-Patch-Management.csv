@@ -1,0 +1,31 @@
+Device_ID,Device_Type,OS_Version,Ownership,Patch_Status
+dev-win-01,Laptop,Windows 11 24H2,Corporate,Compliant
+dev-mac-02,Laptop,macOS 15 Sequoia,BYOD,Compliant
+dev-win-03,Desktop,Windows 10 22H2,Corporate,Non-Compliant
+dev-ios-01,Mobile,iOS 18,BYOD,Compliant
+dev-win-04,Laptop,Windows 11 23H2,Corporate,Non-Compliant
+dev-win-05,Laptop,Windows 11 24H2,Corporate,Compliant
+dev-mac-06,Laptop,macOS 14 Sonoma,BYOD,Non-Compliant
+dev-win-07,Desktop,Windows 10 22H2,Corporate,Non-Compliant
+dev-ios-02,Mobile,iOS 17,BYOD,Non-Compliant
+dev-win-08,Laptop,Windows 11 23H2,Corporate,Compliant
+dev-win-09,Laptop,Windows 11 24H2,Corporate,Compliant
+dev-mac-10,Laptop,macOS 15 Sequoia,BYOD,Compliant
+dev-win-11,Desktop,Windows 10 22H2,Corporate,Non-Compliant
+dev-ios-03,Mobile,iOS 18,BYOD,Compliant
+dev-win-12,Laptop,Windows 11 23H2,Corporate,Non-Compliant
+dev-win-13,Laptop,Windows 11 24H2,Corporate,Compliant
+dev-mac-14,Laptop,macOS 15 Sequoia,BYOD,Compliant
+dev-win-15,Desktop,Windows 10 22H2,Corporate,Non-Compliant
+dev-ios-04,Mobile,iOS 18,BYOD,Compliant
+dev-win-16,Laptop,Windows 11 23H2,Corporate,Non-Compliant
+dev-win-17,Laptop,Windows 11 24H2,Corporate,Compliant
+dev-mac-18,Laptop,macOS 14 Sonoma,BYOD,Non-Compliant
+dev-win-19,Desktop,Windows 10 22H2,Corporate,Non-Compliant
+dev-ios-05,Mobile,iOS 17,BYOD,Non-Compliant
+dev-win-20,Laptop,Windows 11 23H2,Corporate,Compliant
+dev-win-21,Laptop,Windows 11 24H2,Corporate,Compliant
+dev-mac-22,Laptop,macOS 15 Sequoia,BYOD,Compliant
+dev-win-23,Desktop,Windows 10 22H2,Corporate,Non-Compliant
+dev-ios-06,Mobile,iOS 18,BYOD,Compliant
+dev-win-24,Laptop,Windows 11 23H2,Corporate,Non-Compliant
