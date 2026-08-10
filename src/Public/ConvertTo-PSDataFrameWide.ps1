@@ -7,8 +7,10 @@ function ConvertTo-PSDataFrameWide {
     Creates one output row for each unique -Index combination and one or more
     output columns for each unique -Columns combination. With -Aggregate,
     duplicate cells are combined using Sum, Count, Average, Min, or Max. Sum is
-    the default so `Pivot Region Channel Amount` is immediately useful. Use
-    -Unique when every index/column combination must contain exactly one row.
+    the default so `Pivot Region Channel Amount` is immediately useful. When
+    -Values is omitted, the command produces a frequency pivot using Count
+    and fills absent combinations with integer zero by default. Use -Unique
+    when every index/column combination must contain exactly one row.
 
     A string or string-array -Aggregate applies uniformly to every -Values
     column. An ordered dictionary can assign different functions to each value
@@ -28,7 +30,8 @@ function ConvertTo-PSDataFrameWide {
 
     .PARAMETER Values
     Value columns used by a uniqueness-enforcing pivot or by uniform aggregate
-    functions. Omit this parameter when -Aggregate is a dictionary.
+    functions. Omit this parameter for a frequency pivot, or when -Aggregate
+    is a dictionary.
 
     .PARAMETER Aggregate
     A function name, an array of function names, or an ordered dictionary. A
@@ -36,7 +39,9 @@ function ConvertTo-PSDataFrameWide {
     [ordered]@{ Revenue = 'Sum'; Units = @('Sum', 'Average') }, or use advanced
     named specifications such as
     [ordered]@{ TotalRevenue = @{ Property='Revenue'; Function='Sum' } }.
-    Defaults to Sum.
+    Defaults to Sum when -Values is supplied. When -Values is omitted, the
+    default is Count; Count is the only scalar aggregate that does not require
+    a value column.
 
     .PARAMETER Unique
     Disables aggregation and requires every index/column combination to be
@@ -82,6 +87,9 @@ function ConvertTo-PSDataFrameWide {
 
     .EXAMPLE
     $sales | Pivot Region Quarter Revenue
+
+    .EXAMPLE
+    $events | Pivot User Action
 
     .EXAMPLE
     $sales | Pivot Region, OrderDate PaymentStatus OrderTotal -Margins -Outline -Grid
@@ -137,11 +145,23 @@ function ConvertTo-PSDataFrameWide {
             $Sort = $true
         }
 
+        # `Pivot Index Columns` is the natural frequency-table shorthand. Keep
+        # the existing Sum default whenever a value column is present.
+        if (-not $Unique -and @($Values).Count -eq 0 -and -not $PSBoundParameters.ContainsKey('Aggregate')) {
+            $Aggregate = 'Count'
+        }
+
         if ($Unique -and $PSBoundParameters.ContainsKey('Aggregate')) {
             throw '-Unique cannot be combined with an explicitly supplied -Aggregate.'
         }
         $aggregateWasSpecified = -not $Unique
         $metrics = @(Resolve-PSPandasPivotMetrics -DataFrame $DataFrame -Values $Values -Aggregate $Aggregate -AggregateWasSpecified:$aggregateWasSpecified)
+        $isCountPivot = -not $Unique -and @($Values).Count -eq 0 -and @($metrics).Count -eq 1 -and $metrics[0].Function -eq 'Count' -and $null -eq $metrics[0].Property
+        $fillValueSpecified = $PSBoundParameters.ContainsKey('FillValue')
+        if ($isCountPivot -and -not $fillValueSpecified) {
+            $FillValue = [int]0
+            $fillValueSpecified = $true
+        }
         if ($Margins -and -not $aggregateWasSpecified) {
             throw '-Margins requires -Aggregate because totals cannot be inferred for a uniqueness-enforcing pivot.'
         }
@@ -275,7 +295,7 @@ function ConvertTo-PSDataFrameWide {
                     if ($group.Cells.ContainsKey($categoryKey)) {
                         $ordered[$outputName] = Get-PSPandasPivotCellValue -Rows ([object[]]$group.Cells[$categoryKey].ToArray()) -Metric $metric
                     } else {
-                        $ordered[$outputName] = if ($PSBoundParameters.ContainsKey('FillValue')) { $FillValue } else { $null }
+                        $ordered[$outputName] = if ($fillValueSpecified) { $FillValue } else { $null }
                     }
                 }
                 if ($Margins) {

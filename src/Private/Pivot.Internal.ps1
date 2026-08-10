@@ -217,6 +217,29 @@ function Resolve-PSPandasPivotMetrics {
         throw '-Aggregate cannot be null. Omit it for a uniqueness-enforcing pivot.'
     }
 
+    # A pivot with dimensions but no value column is naturally a frequency
+    # table. The public command normalizes an omitted aggregate to Count;
+    # explicit scalar aggregates are validated here so failures explain why
+    # a value column is required.
+    if (@($Values).Count -eq 0 -and $Aggregate -isnot [System.Collections.IDictionary]) {
+        if ($Aggregate -isnot [string] -or [string]::IsNullOrWhiteSpace([string]$Aggregate)) {
+            throw 'Specify -Values when using an aggregate other than Count. With no -Values, -Aggregate must be Count.'
+        }
+        $functionName = Resolve-PSPandasAggregateFunctionName -Name ([string]$Aggregate)
+        if ($functionName -ne 'Count') {
+            throw "Specify -Values when using -Aggregate $functionName. Count is the only aggregate that can operate without a value column."
+        }
+        [void]$metrics.Add([pscustomobject][ordered]@{
+            Name          = 'Count'
+            Property      = $null
+            Function      = 'Count'
+            Specification = 'Count'
+            IsIdentity    = $false
+            IsAdvanced    = $false
+        })
+        return $metrics.ToArray()
+    }
+
     if ($Aggregate -is [System.Collections.IDictionary]) {
         if (@($Values).Count -gt 0) {
             throw 'Do not combine -Values with a dictionary -Aggregate. Dictionary keys or Property entries define the value columns.'
@@ -249,6 +272,10 @@ function Resolve-PSPandasPivotMetrics {
                     if (-not $functionName) {
                         $functionName = if ($propertyName) { 'Sum' } else { 'Count' }
                     }
+                }
+
+                if (@($Values).Count -eq 0 -and $null -eq $propertyName -and $functionName -and $functionName -ne 'Count') {
+                    throw "Specify a source Property for aggregate '$entryName'. Count is the only aggregate that can operate without -Values."
                 }
 
                 [void]$metrics.Add([pscustomobject][ordered]@{

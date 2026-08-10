@@ -21,7 +21,7 @@ using System.Globalization;
 
 namespace PSPandas
 {
-    public sealed class DataFrameColumn
+    public sealed class DataFrameColumn : DynamicObject
     {
         private readonly object[] _values;
 
@@ -32,6 +32,66 @@ namespace PSPandas
         }
 
         public string Name { get; }
+
+        public override bool TryGetIndex(GetIndexBinder binder, object[] indexes, out object result)
+        {
+            result = null;
+            if (indexes == null || indexes.Length == 0)
+            {
+                throw new ArgumentException("Column indexing requires at least one integer index.");
+            }
+
+            var requested = new List<int>();
+            if (indexes.Length == 1 && indexes[0] is Array)
+            {
+                var indexArray = (Array)indexes[0];
+                for (var position = 0; position < indexArray.Length; position++)
+                {
+                    requested.Add(Convert.ToInt32(indexArray.GetValue(position), CultureInfo.InvariantCulture));
+                }
+            }
+            else
+            {
+                for (var position = 0; position < indexes.Length; position++)
+                {
+                    if (indexes[position] is Array)
+                    {
+                        throw new ArgumentException("Column indexing accepts integer indexes or an integer range.");
+                    }
+                    requested.Add(Convert.ToInt32(indexes[position], CultureInfo.InvariantCulture));
+                }
+            }
+
+            if (requested.Count == 1)
+            {
+                result = GetValue(requested[0]);
+                return true;
+            }
+
+            var selected = new object[requested.Count];
+            for (var position = 0; position < requested.Count; position++)
+            {
+                selected[position] = GetValue(requested[position]);
+            }
+            result = selected;
+            return true;
+        }
+
+        private object GetValue(int requestedIndex)
+        {
+            var index = requestedIndex < 0 ? _values.Length + requestedIndex : requestedIndex;
+            if (index < 0 || index >= _values.Length)
+            {
+                throw new IndexOutOfRangeException(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "Column '{0}' index {1} is outside the range 0..{2}.",
+                        Name,
+                        requestedIndex,
+                        _values.Length - 1));
+            }
+            return _values[index];
+        }
 
         public object[] Values
         {

@@ -27,6 +27,7 @@ Export-ModuleMember -Function @(
     'Get-PSDataFrameProfile',
     'Get-PSDataFrameInfo',
     'Get-PSDataFrameHead',
+    'Get-PSDataFrameTail',
     'Get-PSDataFrameColumn',
     'Find-PSDataFrame',
     'Select-PSDataFrame',
@@ -35,6 +36,8 @@ Export-ModuleMember -Function @(
     'Group-PSDataFrame',
     'Measure-PSDataFrame',
     'ConvertTo-PSDataFrameWide',
+    'ConvertTo-PSDataFrameCrosstab',
+    'ConvertTo-PSDataFrameConcat',
     'Join-PSDataFrame'
 ) -Alias @(
     'Where-PSDF',
@@ -49,6 +52,12 @@ Export-ModuleMember -Function @(
     'Summarize',
     'Pivot',
     'Pivot-PSDataFrame',
+    'Crosstab-PSDataFrame',
+    'Crosstab',
+    'xtab',
+    'Concat-PSDataFrame',
+    'Concat',
+    'ctdf',
     'Describe',
     'Join-PSDF'
 )

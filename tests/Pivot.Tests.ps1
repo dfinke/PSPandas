@@ -32,6 +32,162 @@ Describe 'PSPandas wide pivot command surface' {
         (Get-Command Pivot -Module PSPandas).CommandType | Should -Be 'Alias'
         (Get-Command Pivot -Module PSPandas).Definition | Should -Be 'ConvertTo-PSDataFrameWide'
         (Get-Command Pivot-PSDataFrame -Module PSPandas).Definition | Should -Be 'ConvertTo-PSDataFrameWide'
+        (Get-Command ConvertTo-PSDataFrameCrosstab -Module PSPandas).CommandType | Should -Be 'Function'
+        (Get-Command Crosstab -Module PSPandas).CommandType | Should -Be 'Alias'
+        (Get-Command Crosstab -Module PSPandas).Definition | Should -Be 'ConvertTo-PSDataFrameCrosstab'
+        (Get-Command Crosstab-PSDataFrame -Module PSPandas).Definition | Should -Be 'ConvertTo-PSDataFrameCrosstab'
+        (Get-Command xtab -Module PSPandas).CommandType | Should -Be 'Alias'
+        (Get-Command xtab -Module PSPandas).Definition | Should -Be 'ConvertTo-PSDataFrameCrosstab'
+        (Get-Help xtab -ErrorAction Stop).Name | Should -Be 'ConvertTo-PSDataFrameCrosstab'
+        (Get-Help xtab -ErrorAction Stop).Parameters.Parameter.Name | Should -Contain 'Percent'
+    }
+
+    It 'counts index and column combinations and supports margins' {
+        $speechData = ConvertTo-PSDataFrame -ColumnData ([ordered]@{
+            speaker = 'upsy-daisy', 'upsy-daisy', 'upsy-daisy', 'upsy-daisy', 'tombliboo', 'tombliboo', 'makka-pakka', 'makka-pakka', 'makka-pakka', 'makka-pakka'
+            utterance = 'pip', 'pip', 'onk', 'onk', 'ee', 'oo', 'pip', 'pip', 'onk', 'onk'
+        })
+
+        $cross = $speechData | Crosstab -Index speaker -Columns utterance -Margins -FillValue 0
+
+        ($cross.Columns -join ',') | Should -Be 'speaker,pip,onk,ee,oo,Total'
+        $cross.Rows[0].speaker | Should -Be 'upsy-daisy'
+        $cross.Rows[0].pip | Should -Be 2
+        $cross.Rows[0].onk | Should -Be 2
+        $cross.Rows[0].Total | Should -Be 4
+        $cross.Rows[0].pip | Should -BeOfType [int]
+        $cross.Rows[0].Total | Should -BeOfType [int]
+        $cross.Rows[1].ee | Should -Be 1
+        $cross.Rows[1].oo | Should -Be 1
+        $cross.Rows[2].pip | Should -Be 2
+        $cross.Rows[2].onk | Should -Be 2
+        $cross.Rows[3].Total | Should -Be 10
+    }
+
+    It 'uses integer zero for absent frequency combinations by default' {
+        $source = @(
+            [pscustomobject]@{ Source = 'A'; EntryType = 'Information' }
+            [pscustomobject]@{ Source = 'A'; EntryType = 'Information' }
+            [pscustomobject]@{ Source = 'A'; EntryType = 'Error' }
+            [pscustomobject]@{ Source = 'B'; EntryType = 'Warning' }
+        ) | ConvertTo-PSDataFrame
+
+        $cross = $source | xtab Source EntryType
+
+        $cross.Rows[0].Information | Should -Be 2
+        $cross.Rows[0].Information | Should -BeOfType [int]
+        $cross.Rows[0].Error | Should -Be 1
+        $cross.Rows[0].Error | Should -BeOfType [int]
+        $cross.Rows[0].Warning | Should -Be 0
+        $cross.Rows[0].Warning | Should -BeOfType [int]
+        $cross.Rows[1].Information | Should -Be 0
+        $cross.Rows[1].Error | Should -Be 0
+        $cross.Rows[1].Warning | Should -Be 1
+    }
+
+    It 'allows an explicit null fill value when blank cells are desired' {
+        $source = @(
+            [pscustomobject]@{ Source = 'A'; EntryType = 'Information' }
+            [pscustomobject]@{ Source = 'B'; EntryType = 'Warning' }
+        ) | ConvertTo-PSDataFrame
+
+        $cross = $source | Crosstab Source EntryType -FillValue $null
+
+        $cross.Rows[0].Warning | Should -Be $null
+        $cross.Rows[1].Information | Should -Be $null
+    }
+
+    It 'normalizes crosstab counts across all, index rows, or columns' {
+        $source = @(
+            [pscustomobject]@{ Group = 'A'; Kind = 'X' }
+            [pscustomobject]@{ Group = 'A'; Kind = 'X' }
+            [pscustomobject]@{ Group = 'A'; Kind = 'Y' }
+            [pscustomobject]@{ Group = 'B'; Kind = 'X' }
+        ) | ConvertTo-PSDataFrame
+
+        $all = $source | Crosstab Group Kind -Normalize All
+        $index = $source | Crosstab Group Kind -Normalize Index
+        $columns = $source | Crosstab Group Kind -Normalize Columns
+        $allPercent = $source | Crosstab Group Kind -Normalize All -Percent
+        $indexPercent = $source | Crosstab Group Kind -Normalize Index -Percent
+        $columnsPercent = $source | Crosstab Group Kind -Normalize Columns -Percent
+
+        $all.Rows[0].X | Should -Be 0.5
+        $all.Rows[0].Y | Should -Be 0.25
+        $all.Rows[1].X | Should -Be 0.25
+        $all.Rows[1].Y | Should -Be 0
+        $all.Rows[0].X | Should -BeOfType [double]
+        $all.Metadata.Pivot.Normalize | Should -Be 'All'
+
+        $index.Rows[0].X | Should -Be (2 / 3)
+        $index.Rows[0].Y | Should -Be (1 / 3)
+        $index.Rows[1].X | Should -Be 1
+        $index.Rows[1].Y | Should -Be 0
+
+        $columns.Rows[0].X | Should -Be (2 / 3)
+        $columns.Rows[1].X | Should -Be (1 / 3)
+        $columns.Rows[0].Y | Should -Be 1
+        $columns.Rows[1].Y | Should -Be 0
+
+        $allPercent.Rows[0].X | Should -Be 50
+        $allPercent.Rows[0].Y | Should -Be 25
+        $allPercent.Rows[1].X | Should -Be 25
+        $allPercent.Rows[1].Y | Should -Be 0
+        $allPercent.Rows[0].X | Should -BeOfType [double]
+        $indexPercent.Rows[0].X | Should -Be ((2 / 3) * 100)
+        $indexPercent.Rows[0].Y | Should -Be ((1 / 3) * 100)
+        $indexPercent.Rows[1].X | Should -Be 100
+        $indexPercent.Rows[1].Y | Should -Be 0
+        $columnsPercent.Rows[0].X | Should -Be ((2 / 3) * 100)
+        $columnsPercent.Rows[1].X | Should -Be ((1 / 3) * 100)
+        $columnsPercent.Rows[0].Y | Should -Be 100
+        $columnsPercent.Rows[1].Y | Should -Be 0
+        $percentDisplayLines = @($indexPercent | Out-String -Width 200 -Stream)
+        $percentDisplayLines | Should -Contain 'A      66.7 33.3'
+        $percentDisplayLines | Should -Contain 'B     100.0  0.0'
+        $percentDisplayLines -join "`n" | Should -Not -Match '%'
+        $percentA = $percentDisplayLines | Where-Object { $_ -match '^A' }
+        $percentB = $percentDisplayLines | Where-Object { $_ -match '^B' }
+        ($percentA.IndexOf('66.7') + 4) | Should -Be ($percentB.IndexOf('100.0') + 5)
+        $percentA.TrimEnd().Length | Should -Be $percentB.TrimEnd().Length
+
+        $hierarchical = @(
+            [pscustomobject]@{ Region = 'East'; State = 'NY'; Kind = 'X' }
+            [pscustomobject]@{ Region = 'East'; State = 'NY'; Kind = 'Y' }
+            [pscustomobject]@{ Region = 'West'; State = 'CA'; Kind = 'X' }
+        ) | ConvertTo-PSDataFrame
+        $report = $hierarchical | Crosstab -Index Region, State -Columns Kind -Normalize Index -Percent -Outline -Grid
+        $report.Metadata.Pivot.Layout | Should -Be 'Outline'
+        $report.Metadata.Pivot.Grid | Should -BeTrue
+        $report.Metadata.Pivot.Percent | Should -BeTrue
+        $report.Rows[0].X | Should -BeOfType [double]
+        ($report | Out-String -Width 200) | Should -Match 'Region / State'
+        ($report | Out-String -Width 200) | Should -Match '100.0'
+        ($report | Out-String -Width 200) | Should -Not -Match '%'
+    }
+
+    It 'preserves null normalized fill cells and rejects ambiguous margins or fill values' {
+        $source = @(
+            [pscustomobject]@{ Group = 'A'; Kind = 'X' }
+            [pscustomobject]@{ Group = 'B'; Kind = 'Y' }
+        ) | ConvertTo-PSDataFrame
+
+        $normalized = $source | Crosstab Group Kind -Normalize Index -FillValue $null
+        $normalized.Rows[0].Y | Should -Be $null
+        $normalized.Rows[0].X | Should -Be 1
+
+        { $source | Crosstab Group Kind -Normalize All -Margins } |
+            Should -Throw '*cannot be combined with -Margins*'
+        { $source | Crosstab Group Kind -Normalize Index -FillValue 1 } |
+            Should -Throw '*only -FillValue 0 or -FillValue $null*'
+        { $source | Crosstab Group Kind -Percent } |
+            Should -Throw '*requires -Normalize*'
+        { $source | Crosstab Group Kind -Normalize Bad } |
+            Should -Throw '*Normalize*'
+
+        $percentNull = $source | Crosstab Group Kind -Normalize Index -Percent -FillValue $null
+        $percentNull.Rows[0].Y | Should -Be $null
+        $percentNull.Rows[0].X | Should -Be 100
     }
 
     It 'returns a DataFrame and composes through the pipeline' {
@@ -58,6 +214,45 @@ Describe 'PSPandas wide pivot command surface' {
         $wide.Rows[0].Store | Should -Be 20
         $wide.Rows[1].Store | Should -Be 30
         $wide.Metadata.Pivot.Metrics[0].Function | Should -Be 'Sum'
+    }
+
+    It 'uses an implicit Count frequency pivot when Values are omitted' {
+        $events = @(
+            [pscustomobject]@{ User = 'Alice'; Action = 'Login' }
+            [pscustomobject]@{ User = 'Alice'; Action = 'Login' }
+            [pscustomobject]@{ User = 'Alice'; Action = 'Logout' }
+            [pscustomobject]@{ User = 'Bob'; Action = 'Login' }
+            [pscustomobject]@{ User = 'Charlie'; Action = 'Logout' }
+        ) | ConvertTo-PSDataFrame
+
+        $wide = $events | Pivot User Action
+
+        ($wide.Columns -join ',') | Should -Be 'User,Login,Logout'
+        $wide.Rows[0].User | Should -Be 'Alice'
+        $wide.Rows[0].Login | Should -Be 2
+        $wide.Rows[0].Logout | Should -Be 1
+        $wide.Rows[0].Login | Should -BeOfType [int]
+        $wide.Rows[1].User | Should -Be 'Bob'
+        $wide.Rows[1].Login | Should -Be 1
+        $wide.Rows[1].Logout | Should -Be 0
+        $wide.Rows[2].User | Should -Be 'Charlie'
+        $wide.Rows[2].Login | Should -Be 0
+        $wide.Rows[2].Logout | Should -Be 1
+        $wide.Metadata.Pivot.Metrics[0].Function | Should -Be 'Count'
+    }
+
+    It 'allows explicit Count without Values and rejects other scalar aggregates' {
+        $events = @(
+            [pscustomobject]@{ User = 'Alice'; Action = 'Login' }
+            [pscustomobject]@{ User = 'Alice'; Action = 'Logout' }
+        ) | ConvertTo-PSDataFrame
+
+        $counted = $events | Pivot User Action -Aggregate Count
+        $counted.Rows[0].Login | Should -Be 1
+        $counted.Rows[0].Login | Should -BeOfType [int]
+
+        { $events | Pivot User Action -Aggregate Sum } |
+            Should -Throw '*Specify -Values when using -Aggregate Sum*'
     }
 
     It 'stores structured mappings for flattened pivot columns' {

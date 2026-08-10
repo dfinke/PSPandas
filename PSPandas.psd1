@@ -15,6 +15,7 @@
         'Get-PSDataFrameProfile',
         'Get-PSDataFrameInfo',
         'Get-PSDataFrameHead',
+        'Get-PSDataFrameTail',
         'Get-PSDataFrameColumn',
         'Find-PSDataFrame',
         'Select-PSDataFrame',
@@ -23,6 +24,8 @@
         'Group-PSDataFrame',
         'Measure-PSDataFrame',
         'ConvertTo-PSDataFrameWide',
+        'ConvertTo-PSDataFrameCrosstab',
+        'ConvertTo-PSDataFrameConcat',
         'Join-PSDataFrame'
     )
     AliasesToExport   = @(
@@ -38,6 +41,12 @@
         'Summarize',
         'Pivot',
         'Pivot-PSDataFrame',
+        'Crosstab-PSDataFrame',
+        'Crosstab',
+        'xtab',
+        'Concat-PSDataFrame',
+        'Concat',
+        'ctdf',
         'Describe',
         'Join-PSDF'
     )

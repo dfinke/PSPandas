@@ -1,0 +1,34 @@
+OrderId,Region,Channel,Category,CustomerSegment,OrderStatus,Sales
+ORD-1001,West,Online,Office Supplies,Consumer,Shipped,184.50
+ORD-1002,West,Online,Technology,Corporate,Delivered,920.00
+ORD-1003,West,Store,Furniture,Consumer,Delivered,410.25
+ORD-1004,West,Store,Office Supplies,Small Business,Shipped,96.75
+ORD-1005,West,Partner,Technology,Corporate,Delivered,1280.00
+ORD-1006,West,Online,Furniture,Consumer,Processing,275.40
+ORD-1007,West,Online,Office Supplies,Small Business,Delivered,68.20
+ORD-1008,West,Store,Technology,Consumer,Shipped,540.00
+ORD-1009,North,Online,Office Supplies,Consumer,Delivered,142.00
+ORD-1010,North,Online,Furniture,Corporate,Shipped,735.80
+ORD-1011,North,Store,Office Supplies,Consumer,Delivered,88.50
+ORD-1012,North,Store,Technology,Small Business,Processing,315.00
+ORD-1013,North,Partner,Technology,Corporate,Delivered,1100.00
+ORD-1014,North,Partner,Furniture,Corporate,Shipped,680.25
+ORD-1015,North,Online,Technology,Consumer,Delivered,455.00
+ORD-1016,North,Store,Office Supplies,Small Business,Shipped,124.75
+ORD-1017,South,Online,Technology,Corporate,Delivered,890.00
+ORD-1018,South,Online,Office Supplies,Consumer,Shipped,76.40
+ORD-1019,South,Store,Furniture,Consumer,Delivered,352.00
+ORD-1020,South,Store,Office Supplies,Small Business,Processing,115.25
+ORD-1021,South,Store,Technology,Corporate,Delivered,625.00
+ORD-1022,South,Partner,Furniture,Corporate,Shipped,940.50
+ORD-1023,South,Online,Office Supplies,Consumer,Delivered,203.75
+ORD-1024,South,Partner,Technology,Small Business,Delivered,760.00
+ORD-1025,East,Online,Office Supplies,Consumer,Delivered,165.00
+ORD-1026,East,Online,Technology,Corporate,Shipped,1025.00
+ORD-1027,East,Online,Furniture,Consumer,Processing,285.60
+ORD-1028,East,Store,Office Supplies,Small Business,Delivered,92.25
+ORD-1029,East,Store,Technology,Consumer,Shipped,488.00
+ORD-1030,East,Partner,Technology,Corporate,Delivered,1350.00
+ORD-1031,East,Partner,Furniture,Corporate,Shipped,710.75
+ORD-1032,East,Partner,Office Supplies,Small Business,Delivered,245.50
+ORD-1033,East,Online,Office Supplies,Consumer,Delivered,119.00

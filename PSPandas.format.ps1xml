@@ -19,7 +19,7 @@ if ($rows.Count -eq 0) {
     $rows |
         Format-Table -Property Column, Type, RowCount, NullCount, DistinctCount, Minimum, Maximum, Average, Sum, SampleValues -AutoSize |
         Out-String -Width 300
-} elseif ($null -ne $_.PSObject.Properties['Metadata'] -and
+    } elseif ($null -ne $_.PSObject.Properties['Metadata'] -and
           $null -ne $_.Metadata.Pivot -and
           $_.Metadata.Pivot.Layout -eq 'Outline') {
     $pivot = $_.Metadata.Pivot
@@ -188,14 +188,32 @@ if ($rows.Count -eq 0) {
 
     $properties = [string[]]@($hierarchyName) + [string[]]$valueColumns
     if (-not $pivot.Grid) {
-        $reportRows |
-            Format-Table -Property $properties -AutoSize |
-            Out-String -Width 240
+        if ($pivot.Percent) {
+            $displayRows = [System.Collections.Generic.List[object]]::new()
+            foreach ($reportRow in $reportRows) {
+                $display = [ordered]@{ $hierarchyName = $reportRow.PSObject.Properties[$hierarchyName].Value }
+                foreach ($column in $valueColumns) {
+                    $value = $reportRow.PSObject.Properties[$column].Value
+                    $display[$column] = if ($null -eq $value) { $null } else { ([double]$value).ToString('0.0', [Globalization.CultureInfo]::InvariantCulture) }
+                }
+                [void]$displayRows.Add([pscustomobject]$display)
+            }
+            $displayRows |
+                Format-Table -Property $properties -AutoSize |
+                Out-String -Width 240
+        } else {
+            $reportRows |
+                Format-Table -Property $properties -AutoSize |
+                Out-String -Width 240
+        }
     } else {
       $formatCellValue = {
         param($Value)
         if ($null -eq $Value -or $Value -is [System.DBNull]) {
             return ''
+        }
+        if ($pivot.Percent -and $Value -is [ValueType]) {
+            return ([double]$Value).ToString('0.0', [Globalization.CultureInfo]::InvariantCulture)
         }
         if ($Value -is [string]) {
             return ($Value -replace '[\r\n]+', ' ')
@@ -266,6 +284,36 @@ if ($rows.Count -eq 0) {
     [void]$outputLines.Add((& $makeBorder '└' '┴' '┘' '─'))
       ($outputLines -join [Environment]::NewLine) + [Environment]::NewLine
     }
+} elseif ($null -ne $_.PSObject.Properties['Metadata'] -and
+          $null -ne $_.Metadata.Pivot) {
+    $pivot = $_.Metadata.Pivot
+    $indexColumns = @($pivot.Index)
+    $numericTypes = @([byte], [sbyte], [int16], [uint16], [int32], [uint32], [int64], [uint64], [single], [double], [decimal])
+    $displayProperties = [System.Collections.Generic.List[object]]::new()
+    foreach ($column in $_.Columns) {
+        $columnName = [string]$column
+        $isNumeric = [bool]($pivot.Percent -and $columnName -notin $indexColumns)
+        if (-not $isNumeric -and $columnName -notin $indexColumns) {
+            foreach ($row in $rows) {
+                $value = $row.PSObject.Properties[$columnName].Value
+                if ($null -ne $value) {
+                    $isNumeric = $value.GetType() -in $numericTypes
+                    break
+                }
+            }
+        }
+        $expression = { $_.PSObject.Properties[$columnName].Value }.GetNewClosure()
+        $definition = [ordered]@{
+            Label     = $columnName
+            Expression = $expression
+            Alignment = if ($isNumeric) { 'Right' } else { 'Left' }
+        }
+        if ($pivot.Percent -and $columnName -notin $indexColumns) {
+            $definition['FormatString'] = '0.0'
+        }
+        [void]$displayProperties.Add($definition)
+    }
+    $rows | Format-Table -Property $displayProperties.ToArray() -AutoSize | Out-String -Width 200
 } else {
     $rows | Format-Table -AutoSize | Out-String -Width 200
 }

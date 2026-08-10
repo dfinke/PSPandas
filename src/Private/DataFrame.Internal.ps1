@@ -107,6 +107,84 @@ function ConvertTo-PSPandasRow {
     return [pscustomobject]$ordered
 }
 
+function ConvertTo-PSPandasColumnDataShape {
+    <#
+    .SYNOPSIS
+    Converts column-oriented vectors into an ordered row-oriented shape.
+
+    .DESCRIPTION
+    Validates column names and vector lengths, preserves first-seen dictionary
+    order and value types, and transposes vectors into ordered PowerShell rows.
+    Scalar values are not broadcast.
+
+    .PARAMETER ColumnData
+    Dictionary whose keys are column names and whose values are arrays,
+    enumerable collections, or PSPandas DataFrameColumn objects.
+
+    .OUTPUTS
+    System.Management.Automation.PSCustomObject with Columns and Rows properties.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][System.Collections.IDictionary]$ColumnData)
+
+    $columnNames = [System.Collections.Generic.List[string]]::new()
+    $vectors = [System.Collections.Generic.List[object[]]]::new()
+    $seenNames = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $expectedLength = $null
+    $firstColumnName = $null
+
+    foreach ($key in $ColumnData.Keys) {
+        $columnName = [string]$key
+        if ([string]::IsNullOrWhiteSpace($columnName)) {
+            throw 'ColumnData column names cannot be empty.'
+        }
+        if (-not $seenNames.Add($columnName)) {
+            throw "ColumnData contains duplicate column name '$columnName'."
+        }
+
+        $source = $ColumnData[$key]
+        if ($source -is [PSPandas.DataFrameColumn]) {
+            $source = $source.Values
+        }
+        if ($null -eq $source -or $source -is [string] -or
+            $source -is [System.Collections.IDictionary] -or
+            $source -isnot [System.Collections.IEnumerable]) {
+            throw "ColumnData column '$columnName' must be an array or enumerable collection. Scalar values are not broadcast."
+        }
+
+        $values = [System.Collections.Generic.List[object]]::new()
+        foreach ($value in $source) {
+            [void]$values.Add($value)
+        }
+        $vector = [object[]]$values.ToArray()
+
+        if ($null -eq $expectedLength) {
+            $expectedLength = $vector.Count
+            $firstColumnName = $columnName
+        } elseif ($vector.Count -ne $expectedLength) {
+            throw "ColumnData vectors must have the same length. Column '$columnName' has $($vector.Count) values; expected $expectedLength based on column '$firstColumnName'."
+        }
+
+        [void]$columnNames.Add($columnName)
+        [void]$vectors.Add($vector)
+    }
+
+    $rowCount = if ($null -eq $expectedLength) { 0 } else { $expectedLength }
+    $rows = [System.Collections.Generic.List[object]]::new()
+    for ($rowIndex = 0; $rowIndex -lt $rowCount; $rowIndex++) {
+        $ordered = [ordered]@{}
+        for ($columnIndex = 0; $columnIndex -lt $columnNames.Count; $columnIndex++) {
+            $ordered[$columnNames[$columnIndex]] = $vectors[$columnIndex][$rowIndex]
+        }
+        [void]$rows.Add([pscustomobject]$ordered)
+    }
+
+    return [pscustomobject][ordered]@{
+        Columns = [string[]]$columnNames.ToArray()
+        Rows    = [object[]]$rows.ToArray()
+    }
+}
+
 function Import-PSPandasTypedFile {
     <#
     .SYNOPSIS

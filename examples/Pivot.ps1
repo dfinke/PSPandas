@@ -37,3 +37,14 @@ $wide
 $wide.Metadata.Pivot.ColumnMap.Values |
     Select-Object -First 3 MetricName, Property, Function, ColumnValues, IsMargin |
     Format-Table
+
+$events = @(
+    [pscustomobject]@{ User = 'Alice'; Action = 'Login' }
+    [pscustomobject]@{ User = 'Alice'; Action = 'Login' }
+    [pscustomobject]@{ User = 'Alice'; Action = 'Logout' }
+    [pscustomobject]@{ User = 'Bob'; Action = 'Login' }
+    [pscustomobject]@{ User = 'Charlie'; Action = 'Logout' }
+) | ConvertTo-PSDataFrame
+
+'Frequency pivot when Values are omitted:'
+$events | Pivot User Action

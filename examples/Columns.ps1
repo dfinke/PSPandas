@@ -3,7 +3,7 @@
 Demonstrates indexed DataFrame column operations.
 
 .DESCRIPTION
-Builds a frame and uses the column object Values, Sum, Average, Min, Max, and
+Builds a frame and uses column indexing, Values, Sum, Average, Min, Max, and
 Count members without unwrapping the DataFrame.
 
 .EXAMPLE
@@ -20,4 +20,6 @@ $orders = @(
 
 'OrderId sum: {0}' -f $orders['OrderId'].Sum()
 'Average amount: {0}' -f $orders['Amount'].Average()
+'First three amounts: {0}' -f (($orders['Amount'][0..2]) -join ', ')
+'Last amount: {0}' -f $orders['Amount'][-1]
 'OrderId values: {0}' -f (($orders['OrderId'].Values) -join ', ')

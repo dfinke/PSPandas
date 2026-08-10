@@ -42,6 +42,36 @@ $summary = $sales | Measure-PSDataFrame -By Region -Aggregate ([ordered]@{
 $summary | ConvertFrom-PSDataFrame | Format-Table
 ```
 
+## Column-oriented construction
+
+Use `ConvertTo-PSDataFrame -ColumnData` when data already exists as separate
+column vectors. Dictionary keys become column names and every vector becomes a
+column. An ordered dictionary preserves the declared column order:
+
+```powershell
+$age   = 17, 19, 21, 37, 18, 19, 47, 18, 19
+$score = 12, 10, 11, 15, 16, 14, 25, 21, 29
+$rt    = 3.552, 1.624, 6.431, 7.132, 2.925, 4.662, 3.634, 3.635, 5.234
+$group = 'test', 'test', 'test', 'test', 'test',
+         'control', 'control', 'control', 'control'
+
+$data = ConvertTo-PSDataFrame -ColumnData ([ordered]@{
+    age   = $age
+    score = $score
+    rt    = $rt
+    group = $group
+})
+
+$data['score'].Average()
+$data | Summarize -By group -Average age, score, rt
+```
+
+All vectors must have the same length. Arrays, enumerable collections, and
+existing PSPandas column objects are accepted; value types and nulls inside
+vectors are preserved. Scalars are rejected rather than silently broadcast.
+When all vectors are empty, the result is an empty DataFrame that retains the
+declared schema. Run the complete example with `& ./examples/ColumnData.ps1`.
+
 ## Grouping and joins
 
 `Group-PSDataFrame` returns group objects rather than a new summary frame. Each group has `Key`, `Rows`, `Count`, and `DataFrame` properties. Use those objects directly or follow grouping with `Measure-PSDataFrame`:
@@ -94,6 +124,8 @@ Indexing a frame by column name returns a PSPandas column object. It exposes the
 ```powershell
 $orders['OrderId'].Sum()
 $orders['Amount'].Average()
+$orders['Amount'][0..2]
+$orders['Amount'][-1]
 $orders['Amount'].Values
 ```
 
@@ -124,6 +156,30 @@ The advanced `Measure-PSDataFrame -Aggregate` form remains available for custom 
 ## Pivot tables
 
 `ConvertTo-PSDataFrameWide` is the canonical wide-reshape command. Its concise `Pivot` and `Pivot-PSDataFrame` aliases provide a natural interactive surface while keeping module imports approved-verb and warning-free.
+
+`ConvertTo-PSDataFrameCrosstab` is the frequency-table counterpart. Its `Crosstab-PSDataFrame`, `Crosstab`, and `xtab` aliases count each combination of one or more index and column dimensions:
+
+```powershell
+Import-PSDataFrame ./examples/data/CrosstabDemo.csv |
+    Crosstab -Index Region -Columns Channel -Margins -FillValue 0 -Sort
+```
+
+The included `examples/data/CrosstabDemo.csv` contains 33 varied retail orders across four regions and three sales channels, making the uneven category counts visible. Category order follows first appearance unless `-Sort` is supplied. `-Margins` adds row and column totals. Crosstab cells are integer counts, and missing category combinations default to integer `0` for readable terminal output; pass `-FillValue $null` when blank cells are preferred. `-Normalize All` expresses each cell as a share of all observations, `-Normalize Index` makes each output row sum to 1, and `-Normalize Columns` makes each output column sum to 1. Normalized cells are `Double` values. Add `-Percent` to a normalized crosstab to return percentage-point doubles from 0 to 100; for example, `.824` becomes the numeric value `82.4`, and the interactive view displays `82.4` without a suffix. `-Percent` requires `-Normalize`. Normalization rejects `-Margins` and only accepts zero or null fill values so totals and denominators remain unambiguous. For an in-memory example, run `& ./examples/Crosstab.ps1`.
+
+## Concatenating data frames
+
+`ConvertTo-PSDataFrameConcat` appends rows from two or more frames, similar to pandas `concat(..., axis=0)`. The
+`Concat-PSDataFrame` and `Concat` aliases provide the concise surface. Columns are unioned in first-seen order,
+missing values are `$null`, and source row order is preserved:
+
+```powershell
+$combined = $firstHalf, $secondHalf | Concat
+$combined = Concat-PSDataFrame -DataFrame $firstHalf, $secondHalf
+```
+
+Use `-Sort` to alphabetize the output columns. This is row-wise concatenation, not a keyed join; use
+`Join-PSDataFrame` when rows should match on one or more keys. Run the complete example with
+`& ./examples/Concat.ps1`.
 
 The repository includes an original, deterministic retail-order dataset modeled after the analytical shape of a superstore dataset. `examples/data/RetailOrders.csv` contains 144 typed line items across 72 orders, four regions, twelve states, customer segments, product categories and sub-categories, two years of dates, sales, quantity, discounts, and positive/negative profit. `examples/data/RetailOrders.xlsx` provides the same records on an `Orders` worksheet plus a `Data Dictionary` worksheet.
 
@@ -176,7 +232,13 @@ $sales | Pivot -Index Region -Columns Channel -Aggregate ([ordered]@{
 })
 ```
 
-`Sum` is the default aggregate, making concise calls such as `Import-PSDataFrame .\orders.csv | Pivot category payment_status order_total` immediately useful. Use `-Unique` for pandas `pivot` semantics: every index/column combination must contain exactly one source row, and duplicates produce a clear error. `-Unique` cannot be combined with an explicitly supplied `-Aggregate` or with margins. Built-ins are Sum, Count, Average, Min, and Max.
+`Sum` is the default aggregate when `-Values` is supplied, making concise calls such as `Import-PSDataFrame .\orders.csv | Pivot category payment_status order_total` immediately useful. When `-Values` is omitted, `Pivot Index Columns` produces a frequency pivot using `Count`, with absent combinations filled by integer `0`:
+
+```powershell
+$events | Pivot User Action
+```
+
+This returns `User`, `Login`, and `Logout` columns containing typed row counts. `Pivot User Action -Aggregate Count` is the explicit equivalent. Other aggregates require `-Values`, so `Pivot User Action -Aggregate Sum` is rejected with a clear values-required error. Use `-Unique` for pandas `pivot` semantics: every index/column combination must contain exactly one source row, and duplicates produce a clear error. `-Unique` cannot be combined with an explicitly supplied `-Aggregate` or with margins. Built-ins are Sum, Count, Average, Min, and Max.
 
 PSPandas uses ordered string column names rather than hierarchical columns. A single metric produces category names such as `Online` and `Store`; multiple metrics produce deterministic names such as `Sum_Revenue_2025_Q1` and `Average_Units_2025_Q1`. Name collisions fail clearly. First-seen row and category order is preserved by default; `-Sort` sorts both axes.
 
@@ -308,6 +370,10 @@ Run the complete examples from the project folder with:
 
 ```powershell
 & ./examples/QuickStart.ps1
+& ./examples/ColumnData.ps1
+& ./examples/SpeakerUtterance.ps1
+& ./examples/Crosstab.ps1
+& ./examples/Concat.ps1
 & ./examples/Import.ps1
 & ./examples/ExcelImport.ps1
 & ./examples/Workbook.ps1
@@ -328,10 +394,10 @@ Run the complete examples from the project folder with:
 
 - `Import-PSDataFrame`: read supported flat files through PSFlatFile's typed `Import-FlatFile` reader or `.xlsx`/`.xlsm` worksheets through the optional ImportExcel module. Excel imports use the first worksheet by default or the worksheet named by `-WorksheetName`. The relevant reader module must be imported or installed separately.
 - `Import-PSDataFrame -AsWorkbook`: return an Excel workbook object whose ordered worksheets are independently accessible through direct tab-completable properties or `.Worksheets` indexing.
-- `ConvertTo-PSDataFrame`: collect ordinary pipeline objects into a frame; explicit columns can define an empty or stable schema. A file path also delegates to the typed reader for compatibility.
+- `ConvertTo-PSDataFrame` / `ctdf`: collect ordinary pipeline objects into a frame; explicit columns can define an empty or stable schema. `-ColumnData` transposes equally sized, ordered column vectors into rows without scalar broadcasting. A file path also delegates to the typed reader for compatibility.
 - `ConvertFrom-PSDataFrame`: emit frame rows as ordinary PowerShell objects for existing commands, CSV writers, SQL clients, or later integrations.
 - `Get-PSDataFrameProfile` / `Describe`: return one profile row per column with type, row/null/distinct counts, samples, numeric summaries, and typed numeric or DateTime-like bounds, including DateOnly. `-AsRows` emits ordinary profile-row objects for direct pipeline filtering.
-- `Get-PSDataFrameInfo`, `Get-PSDataFrameColumn`, and `Get-PSDataFrameHead`: inspect schema, size, columns, and leading rows.
+- `Get-PSDataFrameInfo`, `Get-PSDataFrameColumn`, `Get-PSDataFrameHead`, and `Get-PSDataFrameTail`: inspect schema, size, columns, and leading or trailing rows.
 - `Find-PSDataFrame`: filter rows with a `Where-Object`-style scriptblock. `Where-PSDataFrame` remains as a compatibility alias.
 - `Select-PSDataFrame`: select and reorder existing columns.
 - `Set-PSDataFrameOrder`: sort by one or more columns. `Sort-PSDataFrame` remains as a compatibility alias.
@@ -339,6 +405,8 @@ Run the complete examples from the project folder with:
 - `Group-PSDataFrame`: produce stable, first-seen groups with key, rows, count, and a group frame.
 - `Measure-PSDataFrame`: aggregate globally or by key. Aggregate specifications may be scriptblocks, property names (sum by default), or `@{ Property = 'Amount'; Function = 'Sum' }` hashtables. For non-count hashtable specifications that omit `Property`, the aggregate output name is used as the source property name. Built-ins include Count, Sum, Average, Min, and Max. `Summarize` is a concise alias for the friendly parameter surface, and `Summarize-PSDataFrame` remains as a compatibility alias.
 - `ConvertTo-PSDataFrameWide` / `Pivot`: reshape one or more column dimensions into ordered output columns. Supports multiple index dimensions, multiple values, uniform or per-value aggregates, advanced named/scriptblock aggregates, fill values, sorting, margins, uniqueness validation, structured pivot metadata, an optional hierarchical `-Outline` report view, and opt-in `-Grid` borders.
+- `ConvertTo-PSDataFrameCrosstab` / `Crosstab` / `xtab`: count combinations of one or more index and column dimensions, returning integer frequency cells with zero-filled absent combinations by default, optional All/Index/Columns normalization and typed percentage points via `-Percent`, margins, custom fill values, sorting, and outline/grid reports.
+- `ConvertTo-PSDataFrameConcat` / `Concat`: append rows from multiple frames, unioning columns in first-seen order and filling absent values with `$null`.
 - `Join-PSDataFrame`: inner, left, right, and full joins on one or more keys. Non-key collisions receive `_left` and `_right` suffixes by default.
 
 All transformations preserve input row order where ordering is meaningful. Empty frames retain an explicitly supplied schema; empty transformations return empty frames with their expected columns.
@@ -355,4 +423,4 @@ Run the test suite from the project folder:
 Invoke-Pester ./tests -Output Detailed
 ```
 
-The runnable examples are `examples/QuickStart.ps1`, `examples/Import.ps1`, `examples/ExcelImport.ps1`, `examples/Workbook.ps1`, `examples/WorkbookStandalone.ps1`, `examples/WorkbookJoins.ps1`, `examples/Grouping.ps1`, `examples/Joins.ps1`, `examples/Columns.ps1`, `examples/Summarize.ps1`, `examples/Pivot.ps1`, `examples/SuperstorePivot.ps1`, `examples/SalesReporting.ps1`, `examples/Profile.ps1`, and `examples/RichProfile.ps1`.
+The runnable examples are `examples/QuickStart.ps1`, `examples/ColumnData.ps1`, `examples/SpeakerUtterance.ps1`, `examples/Crosstab.ps1`, `examples/Concat.ps1`, `examples/Import.ps1`, `examples/ExcelImport.ps1`, `examples/Workbook.ps1`, `examples/WorkbookStandalone.ps1`, `examples/WorkbookJoins.ps1`, `examples/Grouping.ps1`, `examples/Joins.ps1`, `examples/Columns.ps1`, `examples/Summarize.ps1`, `examples/Pivot.ps1`, `examples/SuperstorePivot.ps1`, `examples/SalesReporting.ps1`, `examples/Profile.ps1`, and `examples/RichProfile.ps1`.

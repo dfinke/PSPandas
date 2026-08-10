@@ -33,6 +33,67 @@ Describe 'PSPandas construction and inspection' {
         $frame.Count | Should -Be 3
     }
 
+    It 'constructs an ordered frame from column vectors' {
+        $age = 17, 19, 21, 37, 18, 19, 47, 18, 19
+        $score = 12, 10, 11, 15, 16, 14, 25, 21, 29
+        $rt = 3.552, 1.624, 6.431, 7.132, 2.925, 4.662, 3.634, 3.635, 5.234
+        $group = 'test', 'test', 'test', 'test', 'test', 'control', 'control', 'control', 'control'
+
+        $columnFrame = ConvertTo-PSDataFrame -ColumnData ([ordered]@{
+            age   = $age
+            score = $score
+            rt    = $rt
+            group = $group
+        })
+
+        ($columnFrame.Columns -join ',') | Should -Be 'age,score,rt,group'
+        $columnFrame.Count | Should -Be 9
+        $columnFrame.Rows[0].age | Should -Be 17
+        $columnFrame.Rows[5].group | Should -Be 'control'
+        $columnFrame.Rows[0].age | Should -BeOfType [int]
+        $columnFrame.Rows[0].rt | Should -BeOfType [double]
+        $columnFrame['score'].Sum() | Should -Be 153
+    }
+
+    It 'handles typed, nullable, empty, and existing column vectors' {
+        $nullable = [object[]](1, $null, 3)
+        $typed = ConvertTo-PSDataFrame -ColumnData ([ordered]@{
+            Id     = [int[]](10, 20, 30)
+            Amount = [decimal[]](1.25, 2.50, 3.75)
+            Maybe  = $nullable
+        })
+
+        $typed.Rows[0].Id | Should -BeOfType [int]
+        $typed.Rows[0].Amount | Should -BeOfType [decimal]
+        $typed.Rows[1].Maybe | Should -BeNullOrEmpty
+
+        $fromColumns = ConvertTo-PSDataFrame -ColumnData ([ordered]@{
+            IdCopy     = $typed['Id']
+            AmountCopy = $typed['Amount']
+        })
+        $fromColumns.Count | Should -Be 3
+        $fromColumns.Rows[2].AmountCopy | Should -Be 3.75
+
+        $empty = ConvertTo-PSDataFrame -ColumnData ([ordered]@{
+            Id   = [int[]]@()
+            Name = [string[]]@()
+        })
+        ($empty.Columns -join ',') | Should -Be 'Id,Name'
+        $empty.Count | Should -Be 0
+    }
+
+    It 'rejects invalid column-vector construction clearly without changing row dictionaries' {
+        { ConvertTo-PSDataFrame -ColumnData ([ordered]@{ A = 1, 2, 3; B = 1, 2 }) } |
+            Should -Throw "*ColumnData vectors must have the same length*Column 'B' has 2 values*expected 3*"
+        { ConvertTo-PSDataFrame -ColumnData ([ordered]@{ A = 1 }) } |
+            Should -Throw "*Scalar values are not broadcast*"
+
+        $rowDictionary = [ordered]@{ Values = 1, 2, 3 }
+        $singleRow = ConvertTo-PSDataFrame -InputObject $rowDictionary
+        $singleRow.Count | Should -Be 1
+        @($singleRow.Rows[0].Values).Count | Should -Be 3
+    }
+
     It 'supports explicit columns and empty frames' {
         $empty = ConvertTo-PSDataFrame -Columns Name, Amount
         ($empty.Columns -join ',') | Should -Be 'Name,Amount'
@@ -47,6 +108,9 @@ Describe 'PSPandas construction and inspection' {
         @($frame | Get-PSDataFrameColumn) | Should -Be @('Region', 'Product', 'Quantity', 'Amount')
         @($frame | Get-PSDataFrameHead -Count 2).Count | Should -Be 2
         ($frame | Get-PSDataFrameHead -Count 1).Product | Should -Be 'A'
+        @($frame | Get-PSDataFrameTail -Count 2).Count | Should -Be 2
+        ($frame | Get-PSDataFrameTail -Count 1).Product | Should -Be 'C'
+        @($frame | Get-PSDataFrameTail -Count 0).Count | Should -Be 0
     }
 
     It 'uses the row table as the default display without changing frame semantics' {
@@ -75,6 +139,8 @@ Describe 'PSPandas construction and inspection' {
     It 'exports the approved command names and compatibility aliases' {
         @(Get-Command New-PSDataFrame -Module PSPandas -ErrorAction SilentlyContinue).Count | Should -Be 0
         (Get-Command ConvertTo-PSDataFrame -Module PSPandas).CommandType | Should -Be 'Function'
+        (Get-Command ctdf -Module PSPandas).CommandType | Should -Be 'Alias'
+        (Get-Command ctdf -Module PSPandas).Definition | Should -Be 'ConvertTo-PSDataFrame'
         (Get-Command Import-PSDataFrame -Module PSPandas).CommandType | Should -Be 'Function'
         (Get-Command Find-PSDataFrame).CommandType | Should -Be 'Function'
         (Get-Command Set-PSDataFrameOrder).CommandType | Should -Be 'Function'
@@ -101,6 +167,10 @@ Describe 'PSPandas column objects' {
         $column.Average() | Should -Be (80 / 3)
         $column.Min() | Should -Be 15
         $column.Max() | Should -Be 45
+        $column[0] | Should -Be 20
+        @($column[0..2]) | Should -Be @(20, 15, 45)
+        $column[-1] | Should -Be 45
+        { $column[3] } | Should -Throw '*outside the range*'
     }
 
     It 'ignores nulls and handles empty columns predictably' {
@@ -134,6 +204,47 @@ Describe 'PSPandas column objects' {
             [pscustomobject][ordered]@{ Units = 'not numeric' }
         ) | ConvertTo-PSDataFrame
         { $bad['Units'].Sum() } | Should -Throw '*non-numeric*'
+    }
+}
+
+Describe 'PSPandas concatenation' {
+    It 'exports the canonical command and concise aliases' {
+        (Get-Command ConvertTo-PSDataFrameConcat -Module PSPandas).CommandType | Should -Be 'Function'
+        (Get-Command Concat -Module PSPandas).CommandType | Should -Be 'Alias'
+        (Get-Command Concat -Module PSPandas).Definition | Should -Be 'ConvertTo-PSDataFrameConcat'
+        (Get-Command Concat-PSDataFrame -Module PSPandas).Definition | Should -Be 'ConvertTo-PSDataFrameConcat'
+    }
+
+    It 'appends rows, unions columns, and fills missing values' {
+        $left = @(
+            [pscustomobject][ordered]@{ OrderId = 'A'; Region = 'West'; Amount = [decimal]10.50 }
+        ) | ConvertTo-PSDataFrame
+        $right = @(
+            [pscustomobject][ordered]@{ OrderId = 'B'; Region = 'East'; Channel = 'Online'; Amount = [decimal]20.25 }
+        ) | ConvertTo-PSDataFrame
+
+        $combined = Concat-PSDataFrame -DataFrame $left, $right
+
+        ($combined.Columns -join ',') | Should -Be 'OrderId,Region,Amount,Channel'
+        $combined.Count | Should -Be 2
+        $combined.Rows[0].OrderId | Should -Be 'A'
+        $combined.Rows[0].Channel | Should -Be $null
+        $combined.Rows[1].OrderId | Should -Be 'B'
+        $combined.Rows[1].Channel | Should -Be 'Online'
+        $combined.Rows[0].Amount | Should -BeOfType [decimal]
+        ($combined | Concat).Count | Should -Be 2
+    }
+
+    It 'supports sorted output columns and empty schemas' {
+        $unsorted = ConvertTo-PSDataFrame -InputObject ([pscustomobject][ordered]@{ Zulu = 1; Alpha = 2 })
+        $sorted = $unsorted | Concat -Sort
+        ($sorted.Columns -join ',') | Should -Be 'Alpha,Zulu'
+
+        $emptyLeft = ConvertTo-PSDataFrame -Columns LeftOnly
+        $emptyRight = ConvertTo-PSDataFrame -Columns RightOnly
+        $empty = $emptyLeft, $emptyRight | Concat
+        ($empty.Columns -join ',') | Should -Be 'LeftOnly,RightOnly'
+        $empty.Count | Should -Be 0
     }
 }
 
