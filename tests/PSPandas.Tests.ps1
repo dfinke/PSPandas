@@ -157,6 +157,94 @@ Describe 'PSPandas construction and inspection' {
             (Get-Command $commandName -Module PSPandas).Parameters.ContainsKey('Progress') | Should -BeFalse
             (Get-Command $commandName -Module PSPandas).Parameters.ContainsKey('ProgressAction') | Should -BeTrue
         }
+        (Get-Command Get-NormalRandom -Module PSPandas).CommandType | Should -Be 'Function'
+        (Get-Command Get-NormalRandom -Module PSPandas).Parameters.ContainsKey('Count') | Should -BeTrue
+        (Get-Command Get-RandomInt -Module PSPandas).CommandType | Should -Be 'Function'
+        (Get-Command Get-RandomInt -Module PSPandas).Parameters.ContainsKey('Minimum') | Should -BeTrue
+        (Get-Command Get-RandomInt -Module PSPandas).Parameters.ContainsKey('Maximum') | Should -BeTrue
+        (Get-Command Get-PSDateRange -Module PSPandas).CommandType | Should -Be 'Function'
+        (Get-Command Get-PSDateRange -Module PSPandas).Parameters.ContainsKey('Frequency') | Should -BeTrue
+    }
+}
+
+Describe 'Get-NormalRandom' {
+    It 'generates the requested number of standard-normal doubles' {
+        $values = @(Get-NormalRandom -Count 12 -Seed 42)
+
+        $values.Count | Should -Be 12
+        $values | ForEach-Object { $_.GetType().FullName | Should -Be 'System.Double' }
+        $values | Where-Object { [double]::IsNaN($_) -or [double]::IsInfinity($_) } | Should -BeNullOrEmpty
+    }
+
+    It 'supports repeatable seeded sequences' {
+        $first = @(Get-NormalRandom -Count 5 -Seed 42)
+        $second = @(Get-NormalRandom -Count 5 -Seed 42)
+
+        ($first -join ',') | Should -Be ($second -join ',')
+    }
+
+    It 'defaults to one value and validates count' {
+        @(Get-NormalRandom -Seed 42).Count | Should -Be 1
+        { Get-NormalRandom -Count 0 } | Should -Throw
+    }
+}
+
+Describe 'Get-RandomInt' {
+    It 'generates the requested number of Int32 values within exclusive bounds' {
+        $values = @(Get-RandomInt -Count 12 -Minimum 10 -Maximum 20 -Seed 42)
+
+        $values.Count | Should -Be 12
+        $values | ForEach-Object {
+            $_.GetType().FullName | Should -Be 'System.Int32'
+            $_ | Should -BeGreaterOrEqual 10
+            $_ | Should -BeLessThan 20
+        }
+    }
+
+    It 'supports repeatable seeded sequences' {
+        $first = @(Get-RandomInt -Count 5 -Minimum 1 -Maximum 100 -Seed 42)
+        $second = @(Get-RandomInt -Count 5 -Minimum 1 -Maximum 100 -Seed 42)
+
+        ($first -join ',') | Should -Be ($second -join ',')
+    }
+
+    It 'defaults to one value and validates bounds' {
+        @(Get-RandomInt -Seed 42).Count | Should -Be 1
+        { Get-RandomInt -Minimum 10 -Maximum 10 } | Should -Throw '*Maximum must be greater than Minimum*'
+    }
+}
+
+Describe 'Get-PSDateRange' {
+    It 'generates an inclusive daily DateTime range' {
+        $values = @(Get-PSDateRange -Start '2024-01-01' -End '2024-01-03')
+
+        $values.Count | Should -Be 3
+        $values[0] | Should -Be ([datetime]'2024-01-01')
+        $values[2] | Should -Be ([datetime]'2024-01-03')
+        $values | ForEach-Object { $_.GetType().FullName | Should -Be 'System.DateTime' }
+    }
+
+    It 'supports periods, month starts, business days, and DateOnly output' {
+        $months = @(Get-PSDateRange -Start '2024-01-15' -Periods 3 -Frequency MS -DateOnly)
+        $businessDays = @(Get-PSDateRange -End '2024-01-05' -Periods 5 -Frequency BusinessDay)
+
+        $months.Count | Should -Be 3
+        $months[0].GetType().FullName | Should -Be 'System.DateOnly'
+        $months[0] | Should -Be ([System.DateOnly]::new(2024, 1, 1))
+        $months[2] | Should -Be ([System.DateOnly]::new(2024, 3, 1))
+        $businessDays.Count | Should -Be 5
+        $businessDays[0].DayOfWeek | Should -Be ([DayOfWeek]::Monday)
+        $businessDays[4].DayOfWeek | Should -Be ([DayOfWeek]::Friday)
+    }
+
+    It 'supports endpoint exclusion and validates the two-of-three contract' {
+        $values = @(Get-PSDateRange -Start '2024-01-01' -End '2024-01-03' -Inclusive Neither)
+
+        $values.Count | Should -Be 1
+        $values[0] | Should -Be ([datetime]'2024-01-02')
+        { Get-PSDateRange -Start '2024-01-01' } | Should -Throw '*exactly two*'
+        { Get-PSDateRange -Start '2024-01-01' -End '2024-01-03' -Periods 3 } | Should -Throw '*exactly two*'
+        { Get-PSDateRange -Start '2024-01-01' -Periods 3 -Inclusive Left } | Should -Throw '*only when both*'
     }
 }
 

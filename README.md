@@ -433,6 +433,64 @@ mock data only. Run them from the project folder, for example:
 
 ## Supported functionality
 
+### Normal random values
+
+`Get-NormalRandom` generates values from a standard normal distribution
+(mean 0, standard deviation 1), similar to `numpy.random.randn()`:
+
+```powershell
+$values = Get-NormalRandom -Count 12
+$values
+```
+
+Use `-Seed` when a repeatable sequence is useful for an example or test:
+
+```powershell
+Get-NormalRandom -Count 3 -Seed 42
+```
+
+Values are emitted as `System.Double` objects and can flow directly into
+PowerShell pipelines.
+
+`Get-RandomInt` provides the corresponding uniformly distributed integer
+helper. Its `-Maximum` bound is exclusive, matching PowerShell's usual random
+number convention:
+
+```powershell
+Get-RandomInt -Count 12 -Minimum 1 -Maximum 101
+```
+
+`Get-PSDateRange` generates regular DateTime or DateOnly sequences. Provide
+exactly two of `-Start`, `-End`, and `-Periods`:
+
+```powershell
+Get-PSDateRange -Start '2024-01-01' -End '2024-01-10'
+Get-PSDateRange -Start '2024-01-01' -Periods 12 -Frequency MonthStart -DateOnly
+Get-PSDateRange -End '2024-01-05' -Periods 5 -Frequency BusinessDay
+```
+
+Supported frequencies include `Day`, `Hour`, `Week`, `BusinessDay`,
+`MonthStart`, `MonthEnd`, `QuarterStart`, and `YearStart`, with pandas-style
+short names such as `D`, `B`, `MS`, and `YS`. Use `-Inclusive Left`, `Right`,
+or `Neither` when both `-Start` and `-End` are supplied.
+
+The generated values can also become typed DataFrame columns. The runnable
+version of this example is [`examples/DateRange.ps1`](examples/DateRange.ps1):
+
+```powershell
+$data = [ordered]@{
+    Range       = @(Get-PSDateRange -Start '2024-01-01' -End '2024-01-12')
+    MonthStart  = @(Get-PSDateRange -Start '2024-01-01' -Periods 12 -Frequency MonthStart -DateOnly)
+    BusinessDay = @(Get-PSDateRange -End '2024-01-05' -Periods 12 -Frequency BusinessDay)
+}
+
+$df = ConvertTo-PSDataFrame -ColumnData $data
+$df.Rows | Select-Object -First 3
+```
+
+For a complete tour of every supported frequency and endpoint mode, run
+[`examples/DateRangeAll.ps1`](examples/DateRangeAll.ps1).
+
 - `Import-PSDataFrame`: read supported delimited files through PSPandas' native typed reader, including HTTP/HTTPS `-Uri` sources, or `.xlsx`/`.xlsm` worksheets through the optional ImportExcel module. Excel imports use the first worksheet by default or the worksheet named by `-WorksheetName`; unsupported file extensions fail clearly. File and URI imports show automatic throttled progress that can be suppressed with the standard `-ProgressAction` common parameter.
 - `Import-PSDataFrame -AsWorkbook`: return an Excel workbook object whose ordered worksheets are independently accessible through direct tab-completable properties or `.Worksheets` indexing.
 - `ConvertTo-PSDataFrame` / `ctdf`: collect ordinary pipeline objects into a frame; explicit columns can define an empty or stable schema. `-ColumnData` transposes equally sized, ordered column vectors into rows without scalar broadcasting. A delimited file path or HTTP/HTTPS `-Uri` also uses the native typed reader.
