@@ -3,9 +3,9 @@
 Runs the PSPandas tutorial from start to finish.
 
 .DESCRIPTION
-Uses the repository retail-order data to demonstrate loading, inspection,
-filtering, calculated columns, indexed column operations, summaries, pivots,
-crosstabs, joins, concatenation, date ranges, and profiling.
+Uses the repository retail-order data to answer a practical question: which
+regions, categories, and customer segments are driving sales and profit?
+The script demonstrates the complete analysis from loading through profiling.
 
 .EXAMPLE
 & ./examples/PandasForPowerShell.ps1
@@ -22,26 +22,47 @@ function Show-Section {
     "`n=== $Title ==="
 }
 
+function Show-FrameRows {
+    param(
+        [Parameter(Mandatory)][object]$DataFrame,
+        [int]$Count = 5
+    )
+
+    $DataFrame |
+        ConvertFrom-PSDataFrame |
+        Select-Object -First $Count |
+        Format-Table -AutoSize
+}
+
+Show-Section 'Business question'
+'Which regions, categories, and customer segments are driving sales and profit?'
+'We will load the order lines, create useful dimensions, compare groups, and build a compact report.'
+
 Show-Section 'Load data'
 $orders = Import-PSDataFrame -Path $ordersPath
-$orders | Get-PSDataFrameHead -Count 5 | Format-Table -AutoSize
+Show-FrameRows -DataFrame $orders -Count 5
 
 Show-Section 'Inspect the frame'
 $orders | Get-PSDataFrameInfo
-$orders | Get-PSDataFrameHead -Count 3 | Format-Table -AutoSize
 $orders | Get-PSDataFrameColumn
 
 Show-Section 'Select and filter'
-$profitable = $orders |
+$orders |
     Find-PSDataFrame { $_.Profit -gt 500 } |
-    Select-PSDataFrame -Property 'Order ID', 'Region', 'Category', Sales, Profit
-$profitable | ConvertFrom-PSDataFrame | Select-Object -First 8 | Format-Table -AutoSize
+    Select-PSDataFrame -Property 'Order ID', Region, Category, Sales, Profit |
+    Set-PSDataFrameOrder -Property Profit -Descending |
+    ConvertFrom-PSDataFrame |
+    Select-Object -First 8 |
+    Format-Table -AutoSize
 
-Show-Section 'Add a calculated column'
+Show-Section 'Add analytical columns'
 $orders = $orders |
-    Add-PSDataFrameColumn -Name Year -Expression { $_.'Order Date'.Year }
+    Add-PSDataFrameColumn -Name Year -Expression { $_.'Order Date'.Year } |
+    Add-PSDataFrameColumn -Name ProfitMargin -Expression {
+        if ($_.Sales -eq 0) { $null } else { $_.Profit / $_.Sales }
+    }
 $orders | Get-PSDataFrameHead -Count 3 |
-    Format-Table -Property @('Order ID', 'Order Date', 'Year', 'Sales') -AutoSize
+    Format-Table -Property @('Order ID', 'Order Date', 'Year', 'Sales', 'ProfitMargin') -AutoSize
 
 Show-Section 'Indexed column operations'
 [pscustomobject]@{
@@ -50,20 +71,26 @@ Show-Section 'Indexed column operations'
     FirstSales   = $orders['Sales'][0..2]
 }
 
-Show-Section 'Summarize'
+Show-Section 'Summarize by region'
 $byRegion = $orders |
     Summarize -By Region -Count 'Order ID' -Sum Sales, Profit
 $byRegion | ConvertFrom-PSDataFrame | Format-Table -AutoSize
 
-Show-Section 'Pivot'
-$orders |
-    Pivot -Index Region -Columns Category -Values Sales -Aggregate Sum -FillValue 0
+$bestRegion = $byRegion.Rows |
+    Sort-Object Sum_Profit -Descending |
+    Select-Object -First 1
+"Top profit region: $($bestRegion.Region) ($($bestRegion.Sum_Profit))"
 
-Show-Section 'Crosstab'
+Show-Section 'Pivot sales by region and category'
+$categoryPivot = $orders |
+    Pivot -Index Region -Columns Category -Values Sales -Aggregate Sum -FillValue 0
+$categoryPivot
+
+Show-Section 'Crosstab region and customer segment'
 $orders |
     Crosstab -Index Region -Columns Segment -FillValue 0
 
-Show-Section 'Join'
+Show-Section 'Join a customer dimension'
 $customers = @(
     $orders.Rows |
         Select-Object -Property 'Customer ID', 'Customer Name' -Unique |
@@ -78,25 +105,24 @@ $customers = @(
 
 $ordersForJoin = $orders |
     Select-PSDataFrame -Property 'Order ID', 'Customer ID', Region, Sales
-
 Join-PSDataFrame -Left $ordersForJoin -Right $customers -On 'Customer ID' -JoinType Left |
     Get-PSDataFrameHead -Count 5 |
     Format-Table -AutoSize
 
-Show-Section 'Concat'
+Show-Section 'Concat two frame slices'
 $firstHalf = $orders | Get-PSDataFrameHead -Count 3 | ConvertTo-PSDataFrame
 $secondHalf = $orders | Get-PSDataFrameTail -Count 3 | ConvertTo-PSDataFrame
 $firstHalf, $secondHalf | Concat | Get-PSDataFrameInfo
 
-Show-Section 'Date range'
+Show-Section 'Create a calendar range'
 Get-PSDateRange -Start '2025-01-01' -Periods 6 -Frequency MonthStart -DateOnly |
     ForEach-Object { [pscustomobject]@{ MonthStart = $_ } } |
     Format-Table -AutoSize
 
-Show-Section 'Profile'
+Show-Section 'Profile the source columns'
 $orders | Describe
 
-Show-Section 'Profile rows in a pipeline'
+Show-Section 'Use profile rows in a pipeline'
 $orders |
     Describe -AsRows |
     Where-Object Type -eq 'Numeric' |
