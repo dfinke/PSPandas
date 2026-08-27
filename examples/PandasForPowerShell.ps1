@@ -116,7 +116,7 @@ $firstHalf, $secondHalf | Concat | Get-PSDataFrameInfo
 
 Show-Section 'Create a calendar range'
 Get-PSDateRange -Start '2025-01-01' -Periods 6 -Frequency MonthStart -DateOnly |
-    ForEach-Object { [pscustomobject]@{ MonthStart = $_ } } |
+    ForEach-Object { [pscustomobject]@{ MonthStart = $_.ToString('yyyy-MM-dd') } } |
     Format-Table -AutoSize
 
 Show-Section 'Profile the source columns'

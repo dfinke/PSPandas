@@ -92,11 +92,25 @@ types such as integers, decimals, booleans, DateOnly values, and strings.
 Import-Module ./PSPandas.psd1 -Force
 
 $orders = Import-PSDataFrame ./examples/data/RetailOrders.csv
-$orders
-
 $orders | Get-PSDataFrameInfo
-$orders | Get-PSDataFrameHead -Count 5
+$orders | Get-PSDataFrameHead -Count 5 |
+    Select-Object 'Order ID', Region, Sales, Profit |
+    Format-Table -AutoSize
 $orders | Get-PSDataFrameColumn
+```
+
+Representative output from the included dataset:
+
+```text
+Columns     : {Row ID, Order ID, Order Date, Ship Date…}
+ColumnCount : 21
+RowCount    : 144
+
+Order ID      Region    Sales  Profit
+--------      ------    -----  ------
+ORD-2025-0001 South     91.20   37.70
+ORD-2025-0001 South   1387.20  285.70
+ORD-2025-0002 Central 7434.00 1368.50
 ```
 
 `$orders` is still a PSPandas DataFrame after every transformation. Use
@@ -118,6 +132,16 @@ $profitable = $orders |
 $profitable | ConvertFrom-PSDataFrame | Format-Table
 ```
 
+The highest-profit rows rise to the top after the pipeline completes:
+
+```text
+Order ID      Region  Category     Sales  Profit
+--------      ------  --------     -----  ------
+ORD-2025-0002 Central Technology 7434.00 1368.50
+ORD-2026-0041 West    Technology 5313.35 1119.85
+ORD-2026-0062 Central Technology 5310.00  974.50
+```
+
 `Find-PSDataFrame` preserves the original row and column order. Its older
 `Where-PSDataFrame` alias remains available for compatibility.
 
@@ -134,7 +158,17 @@ later summary needs a derived dimension.
 $orders = $orders |
     Add-PSDataFrameColumn -Name Year -Expression { $_.'Order Date'.Year }
 
-$orders | Get-PSDataFrameHead -Count 3
+$orders | Get-PSDataFrameHead -Count 3 |
+    Select-Object 'Order ID', 'Order Date', Year |
+    Format-Table -AutoSize
+```
+
+```text
+Order ID      Order Date     Year
+--------      ----------     ----
+ORD-2025-0001 Thu 01 02 2025 2025
+ORD-2025-0001 Thu 01 02 2025 2025
+ORD-2025-0002 Mon 01 13 2025 2025
 ```
 
 This is the PowerShell equivalent of creating a column from an expression, but
@@ -154,6 +188,12 @@ $orders['Sales'].Sum()
 $orders['Sales'].Average()
 $orders['Sales'][0..2]
 $orders['Sales'].Values
+```
+
+```text
+SalesSum     : 139833.69
+SalesAverage : 971.07
+FirstSales   : {91.2, 1387.2, 7434}
 ```
 
 `Count()` ignores nulls. `Sum()` ignores nulls and returns zero for an empty or
@@ -179,6 +219,15 @@ $byRegion = $orders |
     Summarize -By Region -Count 'Order ID' -Sum Sales, Profit
 
 $byRegion | ConvertFrom-PSDataFrame | Format-Table
+```
+
+```text
+Region  Count_Order ID Sum_Sales Sum_Profit
+------  -------------- --------- ----------
+South               36  24213.85    5292.55
+Central             36  40176.40    4563.10
+East                36  30343.35   -2028.65
+West                36  45100.09    6844.09
 ```
 
 Output names are deterministic, so `Sum_Profit` can be sorted directly as a
@@ -227,6 +276,17 @@ $orders |
         -Values Sales, Profit -Aggregate Sum -FillValue 0
 ```
 
+The first pivot produces a compact region-by-category comparison:
+
+```text
+Region  Office Supplies Furniture Technology
+------  --------------- --------- ----------
+South           1776.75  22437.10          0
+Central          656.10   1638.00   37882.30
+East             281.25   5517.20   24544.90
+West            1243.49  18316.80   25539.80
+```
+
 When `Values` is omitted, `Pivot Index Columns` becomes a frequency pivot with
 integer counts, equivalent to a crosstab. Use `-Outline` or `-Grid` when you
 want a report-style display; the underlying rows remain structured.
@@ -239,6 +299,15 @@ zero by default:
 ```powershell
 $orders |
     Crosstab -Index Region -Columns Segment -FillValue 0
+```
+
+```text
+Region  Corporate Home Office Consumer
+------  --------- ----------- --------
+South          12          14       10
+Central        10          12       14
+East           16          10       10
+West           14           8       14
 ```
 
 Normalize when proportions are more useful than counts:
@@ -277,6 +346,13 @@ Join-PSDataFrame -Left $ordersForJoin -Right $customers `
     ConvertFrom-PSDataFrame | Format-Table
 ```
 
+```text
+OrderId CustomerId Amount Customer
+------- ---------- ------ --------
+1001    C01             20 Ada
+1002    C99              7
+```
+
 The unmatched `C99` order is retained by the left join and its right-side
 customer value is `$null`.
 
@@ -296,6 +372,11 @@ $combined = $first, $last | Concat
 $combined | Get-PSDataFrameInfo
 ```
 
+```text
+ColumnCount : 21
+RowCount    : 10
+```
+
 Columns are unioned in first-seen order and missing values become `$null`.
 
 This is row-wise composition, not relational matching. If records should line
@@ -310,8 +391,17 @@ $monthStarts = Get-PSDateRange `
     -Start '2025-01-01' -Periods 12 -Frequency MonthStart -DateOnly
 
 $monthStarts | ForEach-Object {
-    [pscustomobject]@{ MonthStart = $_ }
+    [pscustomobject]@{ MonthStart = $_.ToString('yyyy-MM-dd') }
 }
+```
+
+```text
+MonthStart
+----------
+2025-01-01
+2025-02-01
+2025-03-01
+2025-04-01
 ```
 
 Supported frequencies include `Day`, `Hour`, `Week`, `BusinessDay`,
@@ -340,6 +430,15 @@ $orders |
     Describe -AsRows |
     Where-Object Type -eq 'Numeric' |
     Select-Object Column, Minimum, Maximum, Average, Sum
+```
+
+```text
+Column      Minimum  Maximum Average      Sum
+------      -------  ------- -------      ---
+Row ID          1.00   144.00   72.50 10440.00
+Postal Code  2108.00 98101.00 52068.83 7497912.00
+Sales          11.25  7434.00  971.07 139833.69
+Quantity        1.00     7.00    4.02    579.00
 ```
 
 The default result is still a PSPandas DataFrame, so it can be inspected with
