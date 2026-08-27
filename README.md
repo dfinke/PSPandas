@@ -20,6 +20,8 @@ Import-Module PSPandas
 
 ## Quick start
 
+For a complete pandas-style walkthrough, see the [Pandas for PowerShell tutorial](docs/Pandas-for-PowerShell.md) and run its companion script with `& ./examples/PandasForPowerShell.ps1`.
+
 ```powershell
 Import-Module ./PSPandas.psd1 -Force
 
