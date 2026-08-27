@@ -1,8 +1,13 @@
 # Pandas Thinking in PowerShell
 
-This tutorial introduces PSPandas through one practical workflow: load retail
-orders, inspect the data, transform it, summarize it, reshape it, and pass the
-results to ordinary PowerShell commands.(Written in the style of Walt Whitman's "To a Locomotive in Winter")
+This is a guided analysis, not just a command reference. We will answer one
+practical question with the included retail-order data:
+
+> Which regions, categories, and customer segments are driving sales and
+> profit?
+
+We will load the data, make it easier to analyze, answer that question in
+several ways, and finish with a profile that checks what we actually received.
 
 PSPandas is inspired by the useful parts of Python pandas, but the idioms are
 PowerShell-native. DataFrames remain objects in the pipeline, rows remain
@@ -13,6 +18,26 @@ The complete runnable companion is [`examples/PandasForPowerShell.ps1`](../examp
 ```powershell
 & ./examples/PandasForPowerShell.ps1
 ```
+
+The companion script follows the same story and is intentionally executable
+from a fresh PowerShell session. If you prefer to learn interactively, run the
+sections below one at a time from the repository root.
+
+## What you will build
+
+At the end of the tutorial you will have:
+
+- a typed `orders` DataFrame loaded from CSV;
+- analytical `Year` and `ProfitMargin` columns;
+- a ranked view of highly profitable line items;
+- a regional summary, category pivot, and segment crosstab;
+- a joined order/customer view;
+- a calendar range for time-based work; and
+- a profile you can continue processing as ordinary PowerShell objects.
+
+This progression is deliberate: start with trustworthy data, create the
+dimensions needed for the question, compare several analytical views, then
+inspect the result and its assumptions.
 
 ## The pandas-to-PowerShell map
 
@@ -38,6 +63,26 @@ The canonical commands use approved PowerShell verbs. The concise commands
 `Describe`, `Summarize`, `Pivot`, `Crosstab`, and `Concat` are intentional
 convenience aliases.
 
+## The PowerShell mental model
+
+The DataFrame is a structured object that travels through the pipeline. Most
+PSPandas commands return another DataFrame, so the next transformation can be
+chained immediately. A frame's `.Rows` are ordinary PowerShell objects, and
+`ConvertFrom-PSDataFrame` is the explicit escape hatch when another command
+expects one row at a time.
+
+```powershell
+$result = $orders |
+    Find-PSDataFrame { $_.Profit -gt 500 } |
+    Select-PSDataFrame Region, Sales, Profit
+
+$result.GetType().FullName
+$result.Rows[0].PSObject.Properties.Name
+```
+
+Format only at the edge of the workflow. This keeps the data useful for
+sorting, exporting, joining, or passing to another PowerShell command.
+
 ## 1. Import and inspect
 
 Import the module and read the included typed CSV. PSPandas infers practical
@@ -47,15 +92,32 @@ types such as integers, decimals, booleans, DateOnly values, and strings.
 Import-Module ./PSPandas.psd1 -Force
 
 $orders = Import-PSDataFrame ./examples/data/RetailOrders.csv
-$orders
-
 $orders | Get-PSDataFrameInfo
-$orders | Get-PSDataFrameHead -Count 5
+$orders | Get-PSDataFrameHead -Count 5 |
+    Select-Object 'Order ID', Region, Sales, Profit |
+    Format-Table -AutoSize
 $orders | Get-PSDataFrameColumn
+```
+
+Representative output from the included dataset:
+
+```text
+Columns     : {Row ID, Order ID, Order Date, Ship Date…}
+ColumnCount : 21
+RowCount    : 144
+
+Order ID      Region    Sales  Profit
+--------      ------    -----  ------
+ORD-2025-0001 South     91.20   37.70
+ORD-2025-0001 South   1387.20  285.70
+ORD-2025-0002 Central 7434.00 1368.50
 ```
 
 `$orders` is still a PSPandas DataFrame after every transformation. Use
 `ConvertFrom-PSDataFrame` when a command specifically needs ordinary rows.
+
+The first display is intentionally limited to a head. The full frame remains
+available in `$orders`, while the tutorial stays readable in a normal console.
 
 ## 2. Filter and select
 
@@ -70,8 +132,22 @@ $profitable = $orders |
 $profitable | ConvertFrom-PSDataFrame | Format-Table
 ```
 
+The highest-profit rows rise to the top after the pipeline completes:
+
+```text
+Order ID      Region  Category     Sales  Profit
+--------      ------  --------     -----  ------
+ORD-2025-0002 Central Technology 7434.00 1368.50
+ORD-2026-0041 West    Technology 5313.35 1119.85
+ORD-2026-0062 Central Technology 5310.00  974.50
+```
+
 `Find-PSDataFrame` preserves the original row and column order. Its older
 `Where-PSDataFrame` alias remains available for compatibility.
+
+This is a useful PowerShell distinction from pandas' boolean indexing: the
+predicate is a normal scriptblock, so you can use familiar PowerShell syntax,
+existing functions, and conditional logic inside it.
 
 ## 3. Add calculated columns
 
@@ -82,11 +158,25 @@ later summary needs a derived dimension.
 $orders = $orders |
     Add-PSDataFrameColumn -Name Year -Expression { $_.'Order Date'.Year }
 
-$orders | Get-PSDataFrameHead -Count 3
+$orders | Get-PSDataFrameHead -Count 3 |
+    Select-Object 'Order ID', 'Order Date', Year |
+    Format-Table -AutoSize
+```
+
+```text
+Order ID      Order Date     Year
+--------      ----------     ----
+ORD-2025-0001 Thu 01 02 2025 2025
+ORD-2025-0001 Thu 01 02 2025 2025
+ORD-2025-0002 Mon 01 13 2025 2025
 ```
 
 This is the PowerShell equivalent of creating a column from an expression, but
 the expression is an ordinary PowerShell scriptblock.
+
+The dataset is line-item shaped, so adding `Year` creates a reusable time
+dimension for later summaries. `ProfitMargin` is calculated once and can then
+be selected, sorted, or profiled like any source column.
 
 ## 4. Work with a column directly
 
@@ -100,9 +190,19 @@ $orders['Sales'][0..2]
 $orders['Sales'].Values
 ```
 
+```text
+SalesSum     : 139833.69
+SalesAverage : 971.07
+FirstSales   : {91.2, 1387.2, 7434}
+```
+
 `Count()` ignores nulls. `Sum()` ignores nulls and returns zero for an empty or
 all-null column. `Average()`, `Min()`, and `Max()` return `$null` when no
 non-null values remain. Numeric operations reject incompatible values clearly.
+
+This is often the fastest way to answer a one-column question without creating
+a summary frame. The result is still a typed PowerShell value, not formatted
+text.
 
 ## 5. Summarize globally or by group
 
@@ -121,6 +221,28 @@ $byRegion = $orders |
 $byRegion | ConvertFrom-PSDataFrame | Format-Table
 ```
 
+```text
+Region  Count_Order ID Sum_Sales Sum_Profit
+------  -------------- --------- ----------
+South               36  24213.85    5292.55
+Central             36  40176.40    4563.10
+East                36  30343.35   -2028.65
+West                36  45100.09    6844.09
+```
+
+Output names are deterministic, so `Sum_Profit` can be sorted directly as a
+property on the returned summary row:
+
+```powershell
+$byRegion.Rows |
+    Sort-Object Sum_Profit -Descending |
+    Select-Object -First 1 Region, Sum_Profit
+```
+
+Remember that `Count_Order ID` counts non-null values in the source column. In
+this line-item dataset it counts rows with an order ID; it is not a distinct
+order count.
+
 Output names are deterministic: `Count_Order ID`, `Sum_Sales`, and
 `Sum_Profit`. For custom names or scriptblock aggregations, use the advanced
 form:
@@ -137,6 +259,10 @@ $orders | Measure-PSDataFrame -By Region -Aggregate ([ordered]@{
 `Pivot` is the concise surface for wide reshaping. The result keeps index
 columns and creates one output column for each category/measure combination.
 
+This is the view to use when the reader wants categories side by side—for
+example, comparing Furniture, Office Supplies, and Technology within each
+region.
+
 ```powershell
 $orders |
     Pivot -Index Region -Columns Category -Values Sales -Aggregate Sum -FillValue 0
@@ -148,6 +274,17 @@ Multiple dimensions and measures are supported:
 $orders |
     Pivot -Index Region, State -Columns Year, 'Ship Mode' `
         -Values Sales, Profit -Aggregate Sum -FillValue 0
+```
+
+The first pivot produces a compact region-by-category comparison:
+
+```text
+Region  Office Supplies Furniture Technology
+------  --------------- --------- ----------
+South           1776.75  22437.10          0
+Central          656.10   1638.00   37882.30
+East             281.25   5517.20   24544.90
+West            1243.49  18316.80   25539.80
 ```
 
 When `Values` is omitted, `Pivot Index Columns` becomes a frequency pivot with
@@ -164,6 +301,15 @@ $orders |
     Crosstab -Index Region -Columns Segment -FillValue 0
 ```
 
+```text
+Region  Corporate Home Office Consumer
+------  --------- ----------- --------
+South          12          14       10
+Central        10          12       14
+East           16          10       10
+West           14           8       14
+```
+
 Normalize when proportions are more useful than counts:
 
 ```powershell
@@ -174,6 +320,10 @@ $orders |
 The result contains numeric percentage-point values, so they remain useful in
 PowerShell calculations and exports. `-Margins` is intentionally disallowed
 with normalized crosstabs because mixed total semantics are ambiguous.
+
+Use a crosstab for composition and a pivot for measures. A crosstab answers
+“how many rows fall into each combination?” while a pivot answers “what is the
+sum or average of this measure for each combination?”
 
 ## 8. Join related frames
 
@@ -196,8 +346,19 @@ Join-PSDataFrame -Left $ordersForJoin -Right $customers `
     ConvertFrom-PSDataFrame | Format-Table
 ```
 
+```text
+OrderId CustomerId Amount Customer
+------- ---------- ------ --------
+1001    C01             20 Ada
+1002    C99              7
+```
+
 The unmatched `C99` order is retained by the left join and its right-side
 customer value is `$null`.
+
+The explicit `-Left` and `-Right` parameters make the two inputs visible in a
+PowerShell script. The joined result is still a DataFrame and can immediately
+be filtered, summarized, or exported.
 
 ## 9. Concatenate frames
 
@@ -211,7 +372,15 @@ $combined = $first, $last | Concat
 $combined | Get-PSDataFrameInfo
 ```
 
+```text
+ColumnCount : 21
+RowCount    : 10
+```
+
 Columns are unioned in first-seen order and missing values become `$null`.
+
+This is row-wise composition, not relational matching. If records should line
+up by a key, use `Join-PSDataFrame` instead.
 
 ## 10. Create a calendar range
 
@@ -222,13 +391,25 @@ $monthStarts = Get-PSDateRange `
     -Start '2025-01-01' -Periods 12 -Frequency MonthStart -DateOnly
 
 $monthStarts | ForEach-Object {
-    [pscustomobject]@{ MonthStart = $_ }
+    [pscustomobject]@{ MonthStart = $_.ToString('yyyy-MM-dd') }
 }
+```
+
+```text
+MonthStart
+----------
+2025-01-01
+2025-02-01
+2025-03-01
+2025-04-01
 ```
 
 Supported frequencies include `Day`, `Hour`, `Week`, `BusinessDay`,
 `MonthStart`, `MonthEnd`, `QuarterStart`, and `YearStart`, plus short names
 such as `D`, `B`, `MS`, and `YS`.
+
+The generated dates are ordinary typed .NET values, so they can be stored in a
+DataFrame column, compared in a filter, or joined to another frame.
 
 ## 11. Profile and check the data
 
@@ -251,8 +432,48 @@ $orders |
     Select-Object Column, Minimum, Maximum, Average, Sum
 ```
 
+```text
+Column      Minimum  Maximum Average      Sum
+------      -------  ------- -------      ---
+Row ID          1.00   144.00   72.50 10440.00
+Postal Code  2108.00 98101.00 52068.83 7497912.00
+Sales          11.25  7434.00  971.07 139833.69
+Quantity        1.00     7.00    4.02    579.00
+```
+
 The default result is still a PSPandas DataFrame, so it can be inspected with
 `.Rows`, passed to DataFrame commands, or exported after conversion.
+
+This closes the loop: profiling is not only a final display. It is structured
+data that can feed a quality check, a conditional branch, or a report.
+
+## A compact final report
+
+Once the workflow is familiar, the same ideas can be condensed into a report:
+
+```powershell
+$orders = Import-PSDataFrame ./examples/data/RetailOrders.csv |
+    Add-PSDataFrameColumn -Name Year -Expression { $_.'Order Date'.Year }
+
+$regional = $orders | Summarize -By Region -Count 'Order ID' -Sum Sales, Profit
+$topRegion = $regional.Rows |
+    Sort-Object Sum_Profit -Descending |
+    Select-Object -First 1
+
+[pscustomobject]@{
+    Rows          = $orders.Count
+    TopRegion     = $topRegion.Region
+    TopProfit     = $topRegion.Sum_Profit
+    NumericFields = @(
+        $orders | Describe -AsRows |
+            Where-Object Type -eq 'Numeric' |
+            ForEach-Object Column
+    ) -join ', '
+}
+```
+
+The important part is not the final object itself. It is that every intermediate
+value stayed structured and composable until the report boundary.
 
 ## The complete workflow
 
