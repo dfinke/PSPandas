@@ -4,9 +4,10 @@
     GUID              = 'e4c56e9a-6ccf-4de7-9ae9-7c8dddf4e8c5'
     Author            = 'PSPandas contributors'
     CompanyName       = 'Community'
-    Copyright         = '(c) PSPandas contributors. All rights reserved.'
-    Description       = 'A lightweight, pipeline-friendly PowerShell data-frame library.'
+    Copyright         = '(c) 2026 PSPandas contributors'
+    Description       = 'A PowerShell-native, pipeline-friendly data-frame library inspired by the practical parts of pandas.'
     PowerShellVersion = '7.0'
+    CompatiblePSEditions = @('Core')
     FormatsToProcess  = @('PSPandas.format.ps1xml')
     FunctionsToExport = @(
         'ConvertTo-PSDataFrame',
@@ -55,7 +56,10 @@
     )
     PrivateData       = @{
         PSData = @{
-            Tags = @('PowerShell', 'dataframe', 'pipeline', 'data-manipulation')
+            Tags         = @('PowerShell', 'dataframe', 'pipeline', 'data-manipulation', 'pandas', 'csv', 'excel')
+            LicenseUri   = 'https://github.com/dfinke/PSPandas/blob/main/LICENSE'
+            ProjectUri   = 'https://github.com/dfinke/PSPandas'
+            ReleaseNotes = 'Initial PowerShell Gallery release with typed imports, data-frame transformations, summaries, pivots, crosstabs, profiling, joins, concat, and date ranges.'
         }
     }
 }
